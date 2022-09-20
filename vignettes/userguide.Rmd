@@ -21,7 +21,7 @@ knitr::opts_chunk$set(error=FALSE, warning=FALSE, message=FALSE)
 
 # Overview 
 
-The `r self` package implements methods to save common Bioconductor objects to file artifacts and load them back into R.
+The `r self` package implements methods to save matrix-like objects to file artifacts and load them back into R.
 Check out the `r Githubpkg("ArtifactDB/alabaster.base")` for more details on the motivation and the **alabaster** framework.
 
 # Quick start
@@ -43,8 +43,8 @@ library(alabaster.base)
 list.files(tmp, recursive=TRUE)
 ```
 
-We can then easily load it back in with `loadObject()`.
-This creates a HDF5-based sparse matrix that can be easily coerced into the desired format, e.g., a `dgCMatrix`.
+We then load it back into our R session with `loadObject()`.
+This creates a HDF5-backed `DelayedArray` that can be easily coerced into the desired format, e.g., a `dgCMatrix`.
 
 ```{r}
 meta <- acquireMetadata(tmp, "my_sparse_matrix/matrix.h5")

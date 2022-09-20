@@ -21,7 +21,7 @@ tmp <- tempfile()
 dir.create(tmp)
 meta <- stageObject(y, tmp, "sparse")
 meta[["$schema"]]
-## [1] "hdf5sparse_matrix/v1.json"
+## [1] "hdf5_sparse_matrix/v1.json"
 
 library(alabaster.base)
 roundtrip <- loadObject(meta, tmp)
