@@ -20,6 +20,8 @@ Suggests:
     testthat,
     knitr,
     BiocGenerics,
+    BiocStyle,
+    S4Vectors,
     chihaya
 VignetteBuilder: knitr
 RoxygenNote: 7.2.1
