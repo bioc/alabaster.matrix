@@ -17,11 +17,12 @@
 
 \item{names}{Logical scalar indicating whether the seed should be annotated with dimnames (if available).}
 
+\item{group}{String containing the name of the group with the dimnames.}
+
 \item{ndim}{Integer scalar specifying the number of dimensions.}
 }
 \value{
 \code{.createRawArraySeed} returns a seed that can be used in the \code{\link{DelayedArray}} constructor.
-For matrices, this will call \code{\link{.createRawMatrixSeed}}.
 
 \code{.extractArrayDimnames} returns a list of character vectors or \code{NULL}, containing the dimnames.
 }
@@ -29,7 +30,7 @@ For matrices, this will call \code{\link{.createRawMatrixSeed}}.
 Utilities for loading an array saved by \code{\link{stageObject}}.
 }
 \details{
-For \code{.extractArrayDimnames}, \code{path} is expected to be a HDF5 file with a \code{names} group.
+For \code{.extractArrayDimnames}, \code{path} is expected to be a HDF5 file with a group specified by \code{group}.
 Each child of this group is a string dataset named after a (0-indexed) dimension, containing the names for that dimension.
 }
 \author{

@@ -5,6 +5,8 @@
 \alias{stageObject,array-method}
 \alias{stageObject,DelayedArray-method}
 \alias{preserveDelayedOperations}
+\alias{stageObject,Matrix-method}
+\alias{stageObject,DelayedMatrix-method}
 \title{Stage a multi-dimensional array for upload}
 \usage{
 \S4method{stageObject}{array}(x, dir, path, child = FALSE)
@@ -12,6 +14,10 @@
 \S4method{stageObject}{DelayedArray}(x, dir, path, child = FALSE)
 
 preserveDelayedOperations(preserve)
+
+\S4method{stageObject}{Matrix}(x, dir, path, child = FALSE)
+
+\S4method{stageObject}{DelayedMatrix}(x, dir, path, child = FALSE)
 }
 \arguments{
 \item{x}{An array, almost always integer or numeric, though logical and character matrices are also supported.

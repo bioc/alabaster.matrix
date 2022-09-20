@@ -17,7 +17,7 @@ test_that("stageObject works as expected for the default method", {
     dir.create(odir, recursive=TRUE)
 
     info <- stageObject(arr, dir, file.path(experiment, assay))
-    expect_match(info$`$schema`, "dense_array")
+    expect_match(info$`$schema`, "hdf5_dense_array")
 
     # Round tripping.
     arr2 <- loadArray(info, project=dir)
@@ -26,7 +26,7 @@ test_that("stageObject works as expected for the default method", {
     expect_identical(colnames(arr), colnames(arr2))
 
     # Checking that metadata save works.
-    expect_error(alabaster.base:::.writeMetadata(info, dir=dir), NA)
+    expect_error(alabaster.base::.writeMetadata(info, dir=dir), NA)
 })
 
 test_that("stageObject works as expected without dimnames", {
@@ -55,7 +55,7 @@ test_that("stageObject works with DelayedArrays", {
     x <- DelayedArray(arr)
 
     info <- stageObject(x, dir, file.path(experiment, assay))
-    expect_match(info$`$schema`, "dense_array")
+    expect_match(info$`$schema`, "hdf5_dense_array")
 
     arr2 <- loadArray(info, project=dir)
     expect_equal(unname(as.array(arr2)), unname(as.array(x)))
@@ -84,8 +84,8 @@ test_that("stageObject works with DelayedArrays with preserved operations", {
     old <- preserveDelayedOperations(TRUE)
     info <- stageObject(x, dir, file.path(experiment, assay))
     preserveDelayedOperations(old)
-    expect_match(info$`$schema`, "delayed_array")
-    expect_error(alabaster.base:::.writeMetadata(info, dir=dir), NA)
+    expect_match(info$`$schema`, "hdf5_delayed_array")
+    expect_error(alabaster.base::.writeMetadata(info, dir=dir), NA)
 
     arr2 <- loadArray(info, project=dir)
     expect_equal(unname(as.array(arr2)), unname(as.array(x)))

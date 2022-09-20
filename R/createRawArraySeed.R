@@ -5,15 +5,15 @@
 #' @param info A named list of metadata for this array.
 #' @param ndim Integer scalar specifying the number of dimensions.
 #' @param path String containing the path to the file containing said array.
+#' @param group String containing the name of the group with the dimnames.
 #' @param names Logical scalar indicating whether the seed should be annotated with dimnames (if available).
 #'
 #' @return \code{.createRawArraySeed} returns a seed that can be used in the \code{\link{DelayedArray}} constructor.
-#' For matrices, this will call \code{\link{.createRawMatrixSeed}}.
 #'
 #' \code{.extractArrayDimnames} returns a list of character vectors or \code{NULL}, containing the dimnames.
 #'
 #' @details
-#' For \code{.extractArrayDimnames}, \code{path} is expected to be a HDF5 file with a \code{names} group.
+#' For \code{.extractArrayDimnames}, \code{path} is expected to be a HDF5 file with a group specified by \code{group}.
 #' Each child of this group is a string dataset named after a (0-indexed) dimension, containing the names for that dimension.
 #'
 #' @author Aaron Lun
@@ -28,16 +28,16 @@
     }
 
     if ("hdf5_dense_array" %in% names(info)) {
-        group <- info$hdf5_dense_array$group
+        ds <- info$hdf5_dense_array$dataset
+        out <- HDF5ArraySeed(filepath=path, name=ds)
         name.group <- if (names) info$hdf5_dense_array$dimnames else NULL
-        out <- HDF5ArraySeed(filepath=path, name=group)
         return(.array_namer(out, path, name.group))
     }
 
     if ("hdf5_sparse_matrix" %in% names(info)) {
-        group <- info$hdf5_sparse_array$group
-        name.group <- if (names) info$hdf5_sparse_matrix$dimnames else NULL
+        group <- info$hdf5_sparse_matrix$group
         out <- H5SparseMatrixSeed(filepath=path, group=group)
+        name.group <- if (names) info$hdf5_sparse_matrix$dimnames else NULL
         return(.array_namer(out, path, name.group))
     }
 
@@ -64,10 +64,10 @@
     info <- h5ls(path)
 
     dimnames <- vector("list", ndim)
-    all.names <- which(info$group == paste0("/", group, "/", "names"))
+    all.names <- which(info$group == paste0("/", group)) 
     for (i in all.names) {
         name <- info$name[i]
-        dimnames[[as.integer(name)]] <- as.character(h5read(path, file.path("names", name)))
+        dimnames[[as.integer(name) + 1L]] <- as.character(h5read(path, file.path("names", name)))
     }
 
     if (all(vapply(dimnames, is.null, TRUE))) {

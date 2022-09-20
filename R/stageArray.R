@@ -95,7 +95,7 @@ NULL
         for (i in seq_along(d)) {
             current <- d[[i]]
             if (!is.null(current)) {
-                h5write(current, file=ofile, name=file.path("names", i))
+                h5write(current, file=path, name=paste0(group, "/", i - 1L)) # 0-based
             }
         }
         return(group)
@@ -161,7 +161,7 @@ preserveDelayedOperations <- function(preserve) {
     nm <- .name_saver(x, ofile)
 
     list(
-        `$schema`="hdf5sparse_matrix/v1.json",
+        `$schema`="hdf5_sparse_matrix/v1.json",
         path=xpath,
         is_child=child,
         `array` = .grab_array_type(x),
@@ -183,10 +183,10 @@ preserveDelayedOperations <- function(preserve) {
 }
 
 #' @export
-#' @rdname stageMatrix
+#' @rdname stageArray
 #' @importClassesFrom Matrix Matrix
-setMethod("stageObject", "Matrix", function(x, dir, path, child=FALSE) .stage_matrix(x, dir, path, child=child))
+setMethod("stageObject", "Matrix", function(x, dir, path, child=FALSE) .stage_any_matrix(x, dir, path, child=child))
 
 #' @export
-#' @rdname stageMatrix
+#' @rdname stageArray
 setMethod("stageObject", "DelayedMatrix", function(x, dir, path, child=FALSE) .stage_delayed(x, dir, path, child = child, fallback = .stage_any_matrix))

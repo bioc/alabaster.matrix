@@ -14,13 +14,13 @@ test_that("stageObject works as expected for the default method", {
     dir.create(odir, recursive=TRUE)
 
     info <- stageObject(mat, dir, file.path(experiment, assay))
-    expect_match(info$`$schema`, "dense_matrix")
+    expect_match(info$`$schema`, "hdf5_dense_array")
 
     # Metadata is valid.
     expect_error(alabaster.base::.writeMetadata(info, dir), NA)
 
     # Round tripping.
-    mat2 <- loadMatrix(info, project=dir)
+    mat2 <- loadArray(info, project=dir)
     expect_equal(sum(mat2), sum(mat))
     expect_identical(rownames(mat), rownames(mat2))
     expect_identical(colnames(mat), colnames(mat2))
@@ -38,7 +38,7 @@ test_that("stageObject works as expected without dimnames", {
     expect_error(alabaster.base::.writeMetadata(info, dir), NA)
 
     # Round-tripping.
-    mat2 <- loadMatrix(info, project=dir)
+    mat2 <- loadArray(info, project=dir)
     expect_equal(sum(mat2), sum(mat))
     expect_null(rownames(mat2))
     expect_null(colnames(mat2))
@@ -60,7 +60,7 @@ test_that("stageObject works with sparse matrices", {
     expect_error(alabaster.base::.writeMetadata(info, dir), NA)
 
     # Round tripping.
-    mat2 <- loadMatrix(info, project=dir)
+    mat2 <- loadArray(info, project=dir)
     expect_equal(sum(mat2), sum(mat))
     expect_identical(rownames(mat), rownames(mat2))
     expect_identical(colnames(mat), colnames(mat2))
@@ -75,7 +75,7 @@ test_that("stageObject works with sparse matrices", {
     expect_match(info$`$schema`, "sparse_matrix")
     expect_error(alabaster.base::.writeMetadata(info, dir), NA)
 
-    mat2 <- loadMatrix(info, project=dir)
+    mat2 <- loadArray(info, project=dir)
     expect_null(rownames(mat2))
     expect_null(colnames(mat2))
 })
@@ -94,7 +94,7 @@ test_that("stageObject works with DelayedMatrices (naive)", {
     expect_match(info$`$schema`, "sparse_matrix")
     expect_error(alabaster.base::.writeMetadata(info, dir), NA)
 
-    mat2 <- loadMatrix(info, project=dir)
+    mat2 <- loadArray(info, project=dir)
     expect_equal(unname(as.matrix(mat2)), unname(as.matrix(x)))
     expect_null(rownames(mat2))
     expect_null(colnames(mat2))
@@ -106,38 +106,6 @@ test_that("stageObject works with DelayedMatrices (naive)", {
     info <- stageObject(y, dir, file.path(experiment, "other"))
     expect_error(alabaster.base::.writeMetadata(info, dir), NA)
 
-    mat2 <- loadMatrix(info, project=dir)
+    mat2 <- loadArray(info, project=dir)
     expect_equal(as.matrix(mat2), as.matrix(y))
 })
-
-test_that("stageObject pristinifies named DelayedMatrices before staging", {
-    setMethod("stageObject", "ConstantMatrix", function(x, dir, path, ...) {
-        info <- stageObject(as.matrix(x), dir, path, ...)
-        info$foo <- TRUE
-        info
-    })
-
-    setMethod("trueDimnames", "ConstantArraySeed", function(x) {
-        list(
-            as.character(seq_len(nrow(x))), 
-            as.character(seq_len(ncol(x)))
-        )
-    })
-
-    library(DelayedArray)
-    mat <- ConstantArray(0, dim=c(10, 5))
-    dimnames(mat) <- list(
-        as.character(seq_len(nrow(mat))), 
-        as.character(seq_len(ncol(mat)))
-    )
-
-    dir <- tempfile()
-    odir <- file.path(dir, experiment)
-    dir.create(odir, recursive=TRUE)
-
-    # Correctly calls the ConstantMatrix method.
-    info <- stageObject(mat, dir, file.path(experiment, "blah"))
-    expect_true(info$foo)
-})
-
-
