@@ -21,6 +21,7 @@
 #' @export
 #' @name createRawArraySeed
 #' @importFrom HDF5Array HDF5ArraySeed H5SparseMatrixSeed
+#' @importFrom rhdf5 h5readAttributes
 .createRawArraySeed <- function(info, path, names = TRUE) {
     if ("hdf5_delayed_array" %in% names(info)) {
         group <- info$hdf5_delayed_array$group
@@ -30,6 +31,19 @@
     if ("hdf5_dense_array" %in% names(info)) {
         ds <- info$hdf5_dense_array$dataset
         out <- HDF5ArraySeed(filepath=path, name=ds)
+
+        # Handling NA values by just loading everything in... cleaner than
+        # trying to wrap it in a DelayedSubAssign, I suppose.
+        if (type(out) == "character") {
+            attrs <- h5readAttributes(path, ds)
+            miss.place <- attrs[["missing-value-placeholder"]]
+            if (!is.na(miss.place)) {
+                out <- DelayedArray(out)
+                out[out == miss.place] <- NA_character_
+                out <- out@seed
+            }
+        }
+
         name.group <- if (names) info$hdf5_dense_array$dimnames else NULL
         return(.array_namer(out, path, name.group))
     }

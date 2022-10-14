@@ -80,6 +80,26 @@ test_that("stageObject works with sparse matrices", {
     expect_null(colnames(mat2))
 })
 
+test_that("stageObject works with character matrices and missing values", {
+    dir <- tempfile()
+    odir <- file.path(dir, experiment)
+    dir.create(odir, recursive=TRUE)
+
+    mat <- matrix(sample(LETTERS, 100, replace=TRUE), 25, 4)
+    mat[1] <- "NA"
+    mat[100] <- NA_character_
+
+    info <- stageObject(mat, dir, file.path(experiment, assay))
+    expect_match(info$`$schema`, "hdf5_dense")
+
+    # Metadata is valid.
+    expect_error(alabaster.base::.writeMetadata(info, dir), NA)
+
+    # Round-tripping.
+    mat2 <- loadArray(info, project=dir)
+    expect_identical(mat, as.matrix(mat2))
+})
+
 test_that("stageObject works with DelayedMatrices (naive)", {
     dir <- tempfile()
     odir <- file.path(dir, experiment)
