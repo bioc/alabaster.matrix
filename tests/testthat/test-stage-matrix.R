@@ -15,12 +15,14 @@ test_that("stageObject works as expected for the default method", {
 
     info <- stageObject(mat, dir, file.path(experiment, assay))
     expect_match(info$`$schema`, "hdf5_dense_array")
+    expect_identical(info$array$type, "integer")
 
     # Metadata is valid.
     expect_error(alabaster.base::.writeMetadata(info, dir), NA)
 
     # Round tripping.
     mat2 <- loadArray(info, project=dir)
+    expect_identical(DelayedArray::type(mat2), "integer")
     expect_equal(sum(mat2), sum(mat))
     expect_identical(rownames(mat), rownames(mat2))
     expect_identical(colnames(mat), colnames(mat2))
@@ -55,6 +57,7 @@ test_that("stageObject works with sparse matrices", {
 
     info <- stageObject(mat, dir, file.path(experiment, assay))
     expect_match(info$`$schema`, "sparse_matrix")
+    expect_identical(info$array$type, "number")
 
     # Metadata is valid.
     expect_error(alabaster.base::.writeMetadata(info, dir), NA)
@@ -98,6 +101,32 @@ test_that("stageObject works with character matrices and missing values", {
     # Round-tripping.
     mat2 <- loadArray(info, project=dir)
     expect_identical(mat, as.matrix(mat2))
+})
+
+test_that("stageObject works with logical matrices", {
+    dir <- tempfile()
+    odir <- file.path(dir, experiment)
+    dir.create(odir, recursive=TRUE)
+
+    info <- stageObject(mat > 0, dir, file.path(experiment, assay))
+    expect_match(info$`$schema`, "hdf5_dense_array")
+    expect_identical(info$array$type, "boolean")
+
+    mat2 <- loadArray(info, project=dir)
+    expect_identical(DelayedArray::type(mat2), "logical")
+    expect_identical(mat > 0, as.matrix(mat2))
+
+    # Also with sparse counts.
+    assay2 <- "counts2"
+    mat <- Matrix::rsparsematrix(52, 14, 0.1) > 0
+
+    info <- stageObject(mat, dir, file.path(experiment, assay2))
+    expect_match(info$`$schema`, "hdf5_sparse_matrix")
+    expect_identical(info$array$type, "boolean")
+
+    mat2 <- loadArray(info, project=dir)
+    expect_identical(DelayedArray::type(mat2), "logical")
+    expect_identical(as.matrix(mat), as.matrix(mat2))
 })
 
 test_that("stageObject works with DelayedMatrices (naive)", {

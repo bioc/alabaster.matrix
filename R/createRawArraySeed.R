@@ -29,8 +29,9 @@
     }
 
     if ("hdf5_dense_array" %in% names(info)) {
+        dtype <- if (identical(info$array$type, "boolean")) "logical" else NA
         ds <- info$hdf5_dense_array$dataset
-        out <- HDF5ArraySeed(filepath=path, name=ds)
+        out <- HDF5ArraySeed(filepath=path, name=ds, type=dtype)
 
         # Handling NA values by just loading everything in... cleaner than
         # trying to wrap it in a DelayedSubAssign, I suppose.
@@ -51,6 +52,11 @@
     if ("hdf5_sparse_matrix" %in% names(info)) {
         group <- info$hdf5_sparse_matrix$group
         out <- H5SparseMatrixSeed(filepath=path, group=group)
+
+        if (identical(info$array$type, "boolean")) {
+            out <- (DelayedArray(out) != 0L)@seed
+        }
+
         name.group <- if (names) info$hdf5_sparse_matrix$dimnames else NULL
         return(.array_namer(out, path, name.group))
     }
