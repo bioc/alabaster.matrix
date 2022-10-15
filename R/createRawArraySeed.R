@@ -33,12 +33,11 @@
         ds <- info$hdf5_dense_array$dataset
         out <- HDF5ArraySeed(filepath=path, name=ds, type=dtype)
 
-        # Handling NA values by just loading everything in... cleaner than
-        # trying to wrap it in a DelayedSubAssign, I suppose.
+        # Handling NA values for character arrays.
         if (type(out) == "character") {
             attrs <- h5readAttributes(path, ds)
             miss.place <- attrs[["missing-value-placeholder"]]
-            if (!is.na(miss.place)) {
+            if (!is.null(miss.place)) {
                 out <- DelayedArray(out)
                 out[out == miss.place] <- NA_character_
                 out <- out@seed

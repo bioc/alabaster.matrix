@@ -58,7 +58,7 @@ NULL
 #' @importFrom DelayedArray is_sparse
 #' @importFrom rhdf5 h5createFile 
 #' @importFrom HDF5Array writeHDF5Array
-#' @importFrom alabaster.base .chooseStringPlaceholder .addStringPlaceholderAttribute
+#' @importFrom alabaster.base .chooseMissingStringPlaceholder .addMissingStringPlaceholderAttribute
 .stage_array <- function(x, dir, path, child=FALSE) {
     dir.create(file.path(dir, path), showWarnings=FALSE)
     xpath <- file.path(path, "array.h5")
@@ -66,7 +66,7 @@ NULL
 
     missing.placeholder <- NULL
     if (type(x) == "character" && anyNA(x)) {
-        missing.placeholder <- .chooseStringPlaceholder(x)
+        missing.placeholder <- .chooseMissingStringPlaceholder(x)
         x[is.na(x)] <- missing.placeholder
     }
 
@@ -75,7 +75,7 @@ NULL
     nm <- .name_saver(x, ofile)
 
     if (!is.null(missing.placeholder)) {
-        .addStringPlaceholderAttribute(ofile, "data", missing.placeholder)
+        .addMissingStringPlaceholderAttribute(ofile, "data", missing.placeholder)
     }
 
     list(
