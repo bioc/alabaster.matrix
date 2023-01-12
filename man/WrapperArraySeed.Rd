@@ -27,3 +27,18 @@ This is the sole argument used for S4 dispatch.
 }
 It should then return an instance of a WrapperArray subclass that retains some provenance about the resource from which it was generated.
 }
+\examples{
+# Mocking up a concrete wrapper array class, which contains an
+# extra 'foo_id' slot to track the provenance of the data.
+setClass("FooArraySeed", contains="WrapperArraySeed",
+    slots=c(seed="ANY", foo_id="character"))
+
+y <- Matrix::rsparsematrix(1000, 100, 0.01)
+foo <- new("FooArraySeed", seed=y, foo_id="FOO.0001")
+
+dim(foo)
+is_sparse(foo)
+extract_array(foo, list(1:10, 1:10))
+extract_sparse_array(foo, list(1:10, 1:10))
+
+}

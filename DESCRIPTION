@@ -1,7 +1,7 @@
 Package: alabaster.matrix
 Title: Load and Save Artifacts from File
-Version: 0.98.0
-Date: 2022-09-19
+Version: 0.99.0
+Date: 2022-01-12
 Authors@R: person("Aaron", "Lun", role=c("aut", "cre"), email="infinite.monkeys.with.keyboards@gmail.com")
 License: MIT + file LICENSE
 Description: 
@@ -24,4 +24,7 @@ Suggests:
     S4Vectors,
     chihaya
 VignetteBuilder: knitr
-RoxygenNote: 7.2.1
+RoxygenNote: 7.2.3
+biocViews:
+    DataImport,
+    DataRepresentation

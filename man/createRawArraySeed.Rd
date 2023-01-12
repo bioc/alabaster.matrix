@@ -33,6 +33,17 @@ Utilities for loading an array saved by \code{\link{stageObject}}.
 For \code{.extractArrayDimnames}, \code{path} is expected to be a HDF5 file with a group specified by \code{group}.
 Each child of this group is a string dataset named after a (0-indexed) dimension, containing the names for that dimension.
 }
+\examples{
+# Staging an array as an example:
+dir <- tempfile()
+dir.create(dir)
+mat <- array(rpois(10000, 10), c(50, 20, 10))
+meta <- stageObject(mat, dir, "whee")
+
+# Loading it back as a DelayedArray seed:
+.createRawArraySeed(meta, file.path(dir, meta$path))
+
+}
 \author{
 Aaron Lun
 }

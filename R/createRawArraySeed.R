@@ -17,6 +17,15 @@
 #' Each child of this group is a string dataset named after a (0-indexed) dimension, containing the names for that dimension.
 #'
 #' @author Aaron Lun
+#' @examples
+#' # Staging an array as an example:
+#' dir <- tempfile()
+#' dir.create(dir)
+#' mat <- array(rpois(10000, 10), c(50, 20, 10))
+#' meta <- stageObject(mat, dir, "whee")
+#'
+#' # Loading it back as a DelayedArray seed:
+#' .createRawArraySeed(meta, file.path(dir, meta$path))
 #'
 #' @export
 #' @name createRawArraySeed
