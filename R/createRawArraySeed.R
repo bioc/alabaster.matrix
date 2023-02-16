@@ -3,16 +3,24 @@
 #' Utilities for loading an array saved by \code{\link{stageObject}}. 
 #'
 #' @param info A named list of metadata for this array.
-#' @param ndim Integer scalar specifying the number of dimensions.
+#' @param project Any argument accepted by the acquisition functions, see \code{?\link{acquireFile}}. 
+#' By default, this should be a string containing the path to a staging directory.
+#' @param names Logical scalar indicating whether the seed should be annotated with dimnames (if available).
 #' @param path String containing the path to the file containing said array.
 #' @param group String containing the name of the group with the dimnames.
-#' @param names Logical scalar indicating whether the seed should be annotated with dimnames (if available).
+#' @param ndim Integer scalar specifying the number of dimensions.
 #'
 #' @return \code{.createRawArraySeed} returns a seed that can be used in the \code{\link{DelayedArray}} constructor.
 #'
 #' \code{.extractArrayDimnames} returns a list of character vectors or \code{NULL}, containing the dimnames.
 #'
 #' @details
+#' For \code{.createArraySeed}, the array should be one of \code{hdf5_dense_array}, \code{hdf5_sparse_matrix} or \code{hdf5_delayed_array}.
+#'
+#' For delayed arrays, the file may contain a seed array with the \code{"custom alabaster local array"} type.
+#' This should have a \code{path} dataset containing a relative path to another array in the same \code{project}, which is loaded and used as the seed for this delayed array.
+#' Callers can overwrite this behavior by setting \code{"custom alabaster local array"} in the \code{knownArrays} from \pkg{chihaya} before calling \code{.createRawArraySeed}.
+#' 
 #' For \code{.extractArrayDimnames}, \code{path} is expected to be a HDF5 file with a group specified by \code{group}.
 #' Each child of this group is a string dataset named after a (0-indexed) dimension, containing the names for that dimension.
 #'
@@ -25,14 +33,29 @@
 #' meta <- stageObject(mat, dir, "whee")
 #'
 #' # Loading it back as a DelayedArray seed:
-#' .createRawArraySeed(meta, file.path(dir, meta$path))
+#' .createRawArraySeed(meta, project=dir)
 #'
 #' @export
 #' @name createRawArraySeed
 #' @importFrom HDF5Array HDF5ArraySeed H5SparseMatrixSeed
-#' @importFrom rhdf5 h5readAttributes
-.createRawArraySeed <- function(info, path, names = TRUE) {
+#' @importFrom rhdf5 h5read h5readAttributes
+#' @importFrom alabaster.base loadObject acquireFile acquireMetadata
+.createRawArraySeed <- function(info, project, names = TRUE) {
+    path <- acquireFile(project, info$path)
+
     if ("hdf5_delayed_array" %in% names(info)) {
+        copy <- chihaya::knownArrays()
+        key <- "custom alabaster local array"
+        if (!(key %in% names(copy))) {
+            copy[[key]] <- function(file, name, contents) {
+                location <- h5read(file, file.path(name, "path"))
+                info <- acquireMetadata(project, location)
+                loadObject(info, project)
+            }
+            old <- chihaya::knownArrays(copy)
+            on.exit(chihaya::knownArrays(old))
+        }
+
         group <- info$hdf5_delayed_array$group
         return(chihaya::loadDelayed(path, group))
     }

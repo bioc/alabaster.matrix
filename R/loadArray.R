@@ -28,9 +28,7 @@
 #' 
 #' @export
 #' @importFrom DelayedArray DelayedArray
-#' @importFrom alabaster.base acquireFile
 loadArray <- function(info, project) {
-    path <- acquireFile(project, info$path)
-    seed <- .createRawArraySeed(info, path, names=TRUE)
+    seed <- .createRawArraySeed(info, project=project, names=TRUE)
     DelayedArray(seed)
 }

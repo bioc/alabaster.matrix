@@ -6,16 +6,19 @@
 \alias{.extractArrayDimnames}
 \title{Array loading utilities}
 \usage{
-.createRawArraySeed(info, path, names = TRUE)
+.createRawArraySeed(info, project, names = TRUE)
 
 .extractArrayDimnames(path, group, ndim)
 }
 \arguments{
 \item{info}{A named list of metadata for this array.}
 
-\item{path}{String containing the path to the file containing said array.}
+\item{project}{Any argument accepted by the acquisition functions, see \code{?\link{acquireFile}}. 
+By default, this should be a string containing the path to a staging directory.}
 
 \item{names}{Logical scalar indicating whether the seed should be annotated with dimnames (if available).}
+
+\item{path}{String containing the path to the file containing said array.}
 
 \item{group}{String containing the name of the group with the dimnames.}
 
@@ -30,6 +33,12 @@
 Utilities for loading an array saved by \code{\link{stageObject}}.
 }
 \details{
+For \code{.createArraySeed}, the array should be one of \code{hdf5_dense_array}, \code{hdf5_sparse_matrix} or \code{hdf5_delayed_array}.
+
+For delayed arrays, the file may contain a seed array with the \code{"custom alabaster local array"} type.
+This should have a \code{path} dataset containing a relative path to another array in the same \code{project}, which is loaded and used as the seed for this delayed array.
+Callers can overwrite this behavior by setting \code{"custom alabaster local array"} in the \code{knownArrays} from \pkg{chihaya} before calling \code{.createRawArraySeed}.
+
 For \code{.extractArrayDimnames}, \code{path} is expected to be a HDF5 file with a group specified by \code{group}.
 Each child of this group is a string dataset named after a (0-indexed) dimension, containing the names for that dimension.
 }
@@ -41,7 +50,7 @@ mat <- array(rpois(10000, 10), c(50, 20, 10))
 meta <- stageObject(mat, dir, "whee")
 
 # Loading it back as a DelayedArray seed:
-.createRawArraySeed(meta, file.path(dir, meta$path))
+.createRawArraySeed(meta, project=dir)
 
 }
 \author{

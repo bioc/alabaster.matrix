@@ -76,7 +76,6 @@ test_that("stageObject works with DelayedArrays with preserved operations", {
     odir <- file.path(dir, experiment)
     dir.create(odir, recursive=TRUE)
 
-    # Works in the pristine case.
     library(DelayedArray)
     x <- DelayedArray(arr)
     x <- log2(x / runif(nrow(x)) + 1)
@@ -90,3 +89,47 @@ test_that("stageObject works with DelayedArrays with preserved operations", {
     arr2 <- loadArray(info, project=dir)
     expect_equal(unname(as.array(arr2)), unname(as.array(x)))
 })
+
+test_that("stageObject works with DelayedArrays with local references", {
+    dir <- tempfile()
+    odir <- file.path(dir, experiment)
+    dir.create(odir, recursive=TRUE)
+
+    info <- stageObject(arr, dir, paste0(experiment, "/raw"))
+    alabaster.base::.writeMetadata(info, dir=dir)
+    raw.path <- info$path
+
+    # Adding delayed operations.
+    library(DelayedArray)
+    x <- DelayedArray(arr)
+    x <- log2(x / runif(nrow(x)) + 1)
+
+    old <- preserveDelayedOperations(TRUE)
+    info <- stageObject(x, dir, file.path(experiment, assay))
+    preserveDelayedOperations(old)
+
+    expect_match(info$`$schema`, "hdf5_delayed_array")
+    expect_error(alabaster.base::.writeMetadata(info, dir=dir), NA)
+
+    # Manually replacing the seed with a local reference.
+    fpath <- file.path(dir, info$path)
+    rhdf5::h5delete(fpath, "data/seed/seed/seed")
+    rhdf5::h5createGroup(fpath, "data/seed/seed/seed")
+    rhdf5::h5write(dim(arr), fpath, "data/seed/seed/seed/dimensions")
+    rhdf5::h5write("integer", fpath, "data/seed/seed/seed/type")
+    rhdf5::h5write(raw.path, fpath, "data/seed/seed/seed/path")
+
+    {
+        fhandle = rhdf5::H5Fopen(fpath, "H5F_ACC_RDWR")
+        ghandle = rhdf5::H5Gopen(fhandle, "data/seed/seed/seed")
+        rhdf5::h5writeAttribute("array", ghandle, "delayed_type", asScalar=TRUE)
+        rhdf5::h5writeAttribute("custom alabaster local array", ghandle, "delayed_array", asScalar=TRUE)
+        rhdf5::H5Gclose(ghandle)
+        rhdf5::H5Fclose(fhandle)
+    }
+
+    # Now seeing if we can load it.
+    arr2 <- loadArray(info, project=dir)
+    expect_equal(unname(as.array(arr2)), unname(as.array(x)))
+})
+
