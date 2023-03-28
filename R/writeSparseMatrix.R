@@ -88,8 +88,8 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
     }
 
     # Scan through and guess the best types.
-    type <- .guess_integer_type(mat)
-    htype <- paste0("H5T_NATIVE_", type)
+    details <- .extract_details(mat)
+    htype <- paste0("H5T_NATIVE_", details$type)
 
     if (by_column) {
         max.index <- nrow(mat)
@@ -103,54 +103,38 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
         itype <- "H5T_NATIVE_UINT32"
     }
 
+    chunk_dim <- min(details$count, chunk_dim)
+
+    h5createDataset(
+        handle,
+        file.path(name, "data"),
+        dims = details$count,
+        H5type = htype,
+        chunk = chunk_dim
+    )
+
+    h5createDataset(
+        handle,
+        file.path(name, "indices"),
+        dims = details$count,
+        H5type = itype,
+        chunk = chunk_dim
+    )
+
     out <- NULL
     if (is(mat, "dgCMatrix") && by_column) {
-        # Directly save when possible.
-        h5createDataset(
-            handle,
-            file.path(name, "data"),
-            dims = length(mat@x),
-            H5type = htype,
-            chunk = min(length(mat@x), chunk_dim)
-        )
+        # Dump it directly to file if we're dealing with a dgCMatrix.
         h5writeDataset(mat@x, 
             handle, 
             file.path(name, "data")
-        )
-
-        h5createDataset(
-            handle,
-            file.path(name, "indices"),
-            dims = length(mat@i),
-            H5type  = itype,
-            chunk   = min(length(mat@i), chunk_dim)
         )
         h5writeDataset(mat@i, 
             handle, 
             file.path(name, "indices")
         )
-
         out <- mat@p
+
     } else {
-        # Otherwise writing by block to save memory.
-        h5createDataset(
-            handle,
-            file.path(name, "data"),
-            dims = 0,
-            maxdims = H5Sunlimited(),
-            H5type = htype,
-            chunk = chunk_dim
-        )
-
-        h5createDataset(
-            handle,
-            file.path(name, "indices"),
-            dims    = 0,
-            maxdims = H5Sunlimited(),
-            H5type  = itype,
-            chunk   = chunk_dim
-        )
-
         last <- 0 # make this a double to avoid overflow.
 
         seeds <- .is_delayed_cbind_dgCMatrix(mat)
@@ -184,14 +168,14 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
     h5createDataset(
         handle,
         iname,
-        dims   = length(out),
+        dims = length(out),
         H5type = "H5T_NATIVE_UINT64"
     )
 
     h5writeDataset(out, handle, iname)
 }
 
-.guess_integer_type_dsparseMatrix <- function(mat) {
+.extract_details_dsparseMatrix <- function(mat) {
     any.nonint <- FALSE
     i <- 0
     while (i <= length(mat@x)) {
@@ -208,7 +192,8 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
     list(
         negative = limits[1] < 0, 
         extreme = max(abs(limits)),
-        non.integer = any.nonint
+        non.integer = any.nonint,
+        count = length(mat@x)
     )
 }
 
@@ -228,32 +213,36 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
 }
 
 #' @importFrom DelayedArray nzdata
-.check_worst_type <- function(sparse) {
+.extract_details_DelayedArray <- function(sparse) {
     vals <- nzdata(sparse)
     any.negative <- any(vals < 0)
     any.nonint <- any(vals != round(vals))
     extreme.val <- max(abs(vals))
-    list(negative=any.negative, non.integer=any.nonint, extreme=extreme.val)
+    list(negative=any.negative, non.integer=any.nonint, extreme=extreme.val, count=length(vals))
 }
 
 #' @importFrom DelayedArray blockApply colAutoGrid
 #' @importClassesFrom Matrix dsparseMatrix
-.guess_integer_type <- function(mat) {
+.extract_details <- function(mat) {
     if (is(mat, "dsparseMatrix")) {
-        details <- .guess_integer_type_dsparseMatrix(mat)
+        details <- .extract_details_dsparseMatrix(mat)
         any.neg <- details$negative
         any.nonint <- details$non.integer
         extreme <- details$extreme
+        count <- details$count
+
     } else {
         seeds <- .is_delayed_cbind_dgCMatrix(mat)
         if (!is.null(seeds)) {
-            out <- lapply(seeds, .guess_integer_type_dsparseMatrix)
+            out <- lapply(seeds, .extract_details_dsparseMatrix)
         } else {
-            out <- blockApply(mat, FUN = .check_worst_type, as.sparse = TRUE, grid = colAutoGrid(mat))
+            out <- blockApply(mat, FUN = .extract_details_DelayedArray, as.sparse = TRUE) # any grid works here.
         }
+
         any.neg <- any(vapply(out, function(y) y$negative, TRUE))
         any.nonint <- any(vapply(out, function(y) y$non.integer, TRUE))
         extreme <- max(unlist(lapply(out, function(y) y$extreme)))
+        count <- sum(unlist(lapply(out, function(y) y$count)))
     }
 
     if (any.nonint) {
@@ -274,11 +263,11 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
         }
     }
 
-    type
+    list(type=type, count=count)
 }
 
 #' @importFrom DelayedArray nzindex nzdata
-#' @importFrom rhdf5 h5set_extent h5writeDataset
+#' @importFrom rhdf5 h5writeDataset
 .blockwise_sparse_writer <- function(block, last, file, name, by_column=FALSE) {
     nzdex <- nzindex(block)
     if (by_column) {
@@ -301,27 +290,23 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
     index <- list(last + seq_along(primary))
 
     iname <- file.path(name, "indices")
-    h5set_extent(file, iname, newlast)
     h5writeDataset(secondary - 1L, file, iname, index = index)
 
     vname <- file.path(name, "data")
-    h5set_extent(file, vname, newlast)
     h5writeDataset(v, file, vname, index = index)
 
     list(number=tabulate(primary, ndim), last=newlast)
 }
 
-#' @importFrom rhdf5 h5set_extent h5writeDataset
+#' @importFrom rhdf5 h5writeDataset
 .cbind_dgCMatrix_sparse_writer <- function(mat, last, file, name) {
     newlast <- last + length(mat@x)
     index <- list(last + seq_along(mat@i))
 
     iname <- file.path(name, "indices")
-    h5set_extent(file, iname, newlast)
     h5writeDataset(mat@i, file, iname, index = index)
 
     vname <- file.path(name, "data")
-    h5set_extent(file, vname, newlast)
     h5writeDataset(mat@x, file, vname, index = index)
 
     list(number=diff(mat@p), last=newlast)
