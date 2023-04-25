@@ -1,6 +1,6 @@
 Package: alabaster.matrix
 Title: Load and Save Artifacts from File
-Version: 0.99.2
+Version: 1.0.0
 Date: 2023-03-28
 Authors@R: person("Aaron", "Lun", role=c("aut", "cre"), email="infinite.monkeys.with.keyboards@gmail.com")
 License: MIT + file LICENSE
