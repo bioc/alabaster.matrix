@@ -24,7 +24,7 @@
 #' path,WrapperArraySeed-method
 #' is_sparse,WrapperArraySeed-method
 #' extract_array,WrapperArraySeed-method
-#' extract_sparse_array,WrapperArraySeed-method
+#' OLD_extract_sparse_array,WrapperArraySeed-method
 #'
 #' @examples
 #' # Mocking up a concrete wrapper array class, which contains an
@@ -38,7 +38,7 @@
 #' dim(foo)
 #' is_sparse(foo)
 #' extract_array(foo, list(1:10, 1:10))
-#' extract_sparse_array(foo, list(1:10, 1:10))
+#' OLD_extract_sparse_array(foo, list(1:10, 1:10))
 #' 
 #' @name WrapperArraySeed
 NULL
@@ -66,7 +66,7 @@ setMethod("is_sparse", "WrapperArraySeed", function(x) callGeneric(x@seed))
 setMethod("extract_array", "WrapperArraySeed", function(x, index) callGeneric(x@seed, index))
 
 #' @export
-#' @importFrom DelayedArray extract_sparse_array
-setMethod("extract_sparse_array", "WrapperArraySeed", function(x, index) callGeneric(x@seed, index))
+#' @importFrom DelayedArray OLD_extract_sparse_array
+setMethod("OLD_extract_sparse_array", "WrapperArraySeed", function(x, index) callGeneric(x@seed, index))
 
 
