@@ -11,6 +11,7 @@ Description:
     downstream applications can enrich this metadata with context-specific properties.
 Imports:
     methods,
+    BiocGenerics,
     DelayedArray,
     rhdf5,
     HDF5Array,

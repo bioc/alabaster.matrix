@@ -8,6 +8,7 @@
 #' @param path String containing the relative path to a subdirectory inside the staging directory, in which \code{x} is to be saved.
 #' @param child Logical scalar indicating whether \code{x} is a child of a larger object.
 #' @param preserve Whether to preserve delayed operations using the \pkg{chihaya} specification.
+#' @param recycle Whether to recycle existing files for HDF5-backed DelayedArrays.
 #' 
 #' @return
 #' For the \code{stageObject} methods, the array is saved into a single file at \code{file.path(dir, path)}, possibly after appending an arbitrary file extension. 
@@ -33,6 +34,12 @@
 #' By default, \code{preserveDelayedOperations()} is \code{FALSE} so any DelayedArray \code{x} will be saved as a dense HDF5 dataset.
 #' If \code{preserveDelayedOperations()} is \code{TRUE}, DelayedArrays will instead be saved in the \pkg{chihaya} specification,
 #' where the delayed operations are themselves stored in the HDF5 file (see \url{https://ltla.github.io/chihaya} for details).
+#'
+#' If \code{recycleHdf5Files()} is \code{TRUE}, \code{stageObject} will attempt to link/copy existing files for any HDF5-backed DelayedArray instances 
+#' (most specifically, \linkS4class{HDF5Array} objects and \linkS4class{H5SparseMatrix} objects using the 10X format).
+#' This avoids re-serialization of the data for faster staging, at the risk of accidentally including other data in the existing file that was not meant to be staged.
+#' Users should only enable this option if it is known that the existing file contains nothing but the matrix data.
+#' Also note that any dimnames on \code{x} will be ignored during recycling.
 #'
 #' @author Aaron Lun
 #' @examples
@@ -120,8 +127,12 @@ NULL
 setMethod("stageObject", "array", function(x, dir, path, child=FALSE) .stage_array(x, dir, path, child=child))
 
 #' @importFrom alabaster.base .stageObject
-#' @importFrom DelayedArray DelayedArray seed isPristine
 .stage_delayed <- function(x, dir, path, child, fallback) {
+    out <- .check_for_hdf5(x, dir, path, child = child)
+    if (!is.null(out)) {
+        return(out)
+    }
+
     if (!preserveDelayedOperations()) {
         return(fallback(x, dir, path, child=child))
     }
@@ -145,17 +156,18 @@ setMethod("stageObject", "array", function(x, dir, path, child=FALSE) .stage_arr
 #' @rdname stageArray
 setMethod("stageObject", "DelayedArray", function(x, dir, path, child=FALSE) .stage_delayed(x, dir, path, child = child, fallback = .stage_array))
 
-preserve.env <- new.env()
-preserve.env$preserve <- FALSE
+staging.options <- new.env()
+staging.options$preserve.delayed <- FALSE
+staging.options$recycle.hdf5 <- FALSE
 
 #' @export
 #' @rdname stageArray
 preserveDelayedOperations <- function(preserve) {
-    prev <- preserve.env$preserve
+    prev <- staging.options$preserve.delayed
     if (missing(preserve)) {
         prev
     } else {
-        preserve.env$preserve <- preserve
+        staging.options$preserve.delayed <- preserve
         invisible(prev)
     }
 }
@@ -201,3 +213,94 @@ setMethod("stageObject", "Matrix", function(x, dir, path, child=FALSE) .stage_an
 #' @export
 #' @rdname stageArray
 setMethod("stageObject", "DelayedMatrix", function(x, dir, path, child=FALSE) .stage_delayed(x, dir, path, child = child, fallback = .stage_any_matrix))
+
+#' @export
+#' @rdname stageArray
+recycleHdf5Files <- function(recycle) {
+    prev <- staging.options$recycle.hdf5
+    if (missing(recycle)) {
+        prev
+    } else {
+        staging.options$recycle.hdf5 <- recycle
+        invisible(prev)
+    }
+}
+
+.link_or_copy <- function(from, to) {
+    if (!file.link(from, to)) {
+        if (!file.copy(from, to)) {
+            stop("failed to link or copy '", from, "' to '", to, "'")
+        }
+    }
+}
+
+#' @importFrom BiocGenerics path
+#' @importFrom rhdf5 h5read
+.check_for_hdf5 <- function(x, dir, path, child) {
+    if (!recycleHdf5Files()) {
+        return(NULL)
+    }
+
+    if (is(x, "DelayedArray")) {
+        x <- x@seed
+    }
+    if (is(x, "DelayedSetDimnames")) {
+        x <- x@seed # Ignoring the names.
+    }
+
+    dense <- FALSE
+    if (is(x, "HDF5ArraySeed")) {
+        dense <- TRUE
+    } else if (is(x, "H5SparseMatrixSeed")) {
+        ;
+    } else {
+        return(NULL)
+    }
+
+    src <- path(x)
+
+    if (!dense) {
+        # Checking that it's in the 10X format, otherwise we bail.
+        if (!is(x, "CSC_H5SparseMatrixSeed")) {
+            return(NULL)
+        }
+        if (!is.null(x@subdata)) {
+            return(NULL)
+        }
+
+        attempt <- try(h5read(src, paste0(x@group, "/shape")), silent=TRUE)
+        if (is(attempt, "try-error") || !identical(as.vector(attempt), dim(x))) {
+            return(NULL)
+        }
+
+        dir.create(file.path(dir, path), showWarnings=FALSE)
+        dest <- paste0(path, "/matrix.h5")
+        .link_or_copy(src, file.path(dir, dest))
+
+        list(
+            `$schema`="hdf5_sparse_matrix/v1.json",
+            path=dest,
+            is_child=child,
+            `array` = .grab_array_type(x),
+            hdf5_sparse_matrix = list(
+                group = x@group,
+                format = "tenx_matrix"
+            )
+        )
+
+    } else {
+        dir.create(file.path(dir, path), showWarnings=FALSE)
+        dest <- paste0(path, "/array.h5")
+        .link_or_copy(src, file.path(dir, dest))
+
+        list(
+            `$schema`="hdf5_dense_array/v1.json",
+            path=dest,
+            is_child=child,
+            `array` = .grab_array_type(x),
+            hdf5_dense_array= list(
+                dataset=x@name
+            )
+        )
+    }
+}

@@ -133,3 +133,53 @@ test_that("stageObject works with DelayedArrays with local references", {
     expect_equal(unname(as.array(arr2)), unname(as.array(x)))
 })
 
+test_that("stageObject recycles existing HDF5Arrays", {
+    dir <- tempfile()
+    dir.create(dir, recursive=TRUE)
+
+    library(HDF5Array)
+    x <- as(matrix(runif(1000), 10, 100), "HDF5Array")
+    rhdf5::h5write("foo", path(x), "bar") # injecting a little something to distinguish it from a rewritten file.
+
+    {
+        info <- stageObject(x, dir, "dense")
+        expect_false(identical(file.size(path(x)), file.size(file.path(dir, info$path)))) # negative control that triggers the fallback.
+        arr2 <- loadArray(info, project=dir)
+        expect_equal(unname(as.array(arr2)), unname(as.array(x)))
+    }
+
+    old <- recycleHdf5Files(TRUE)
+    on.exit(recycleHdf5Files(old))
+
+    {
+        info <- stageObject(x, dir, "dense2")
+        expect_match(info$`$schema`, "hdf5_dense_array")
+        expect_error(alabaster.base::.writeMetadata(info, dir=dir), NA)
+        expect_identical(file.size(path(x)), file.size(file.path(dir, info$path))) # same file.
+
+        arr2 <- loadArray(info, project=dir)
+        expect_equal(unname(as.array(arr2)), unname(as.array(x)))
+    }
+
+    {
+        y <- Matrix::rsparsematrix(20, 50, density=0.1)
+        tmp <- tempfile(fileext=".h5")
+        rhdf5::h5createFile(tmp)
+        rhdf5::h5createGroup(tmp, "foo")
+        rhdf5::h5write(y@p, tmp, "foo/indptr")
+        rhdf5::h5write(y@i, tmp, "foo/indices")
+        rhdf5::h5write(y@x, tmp, "foo/data")
+        rhdf5::h5write(dim(y), tmp, "foo/shape")
+        x <- H5SparseMatrix(tmp, "foo")
+
+        info <- stageObject(x, dir, "sparse")
+        expect_match(info$`$schema`, "hdf5_sparse_matrix")
+        expect_error(alabaster.base::.writeMetadata(info, dir=dir), NA)
+        expect_identical(file.size(path(x)), file.size(file.path(dir, info$path)))
+
+        arr2 <- loadArray(info, project=dir)
+        expect_equal(unname(as.array(arr2)), unname(as.array(x)))
+    }
+})
+
+

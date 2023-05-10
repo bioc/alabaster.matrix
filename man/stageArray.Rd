@@ -7,6 +7,7 @@
 \alias{preserveDelayedOperations}
 \alias{stageObject,Matrix-method}
 \alias{stageObject,DelayedMatrix-method}
+\alias{recycleHdf5Files}
 \title{Stage a multi-dimensional array for upload}
 \usage{
 \S4method{stageObject}{array}(x, dir, path, child = FALSE)
@@ -18,6 +19,8 @@ preserveDelayedOperations(preserve)
 \S4method{stageObject}{Matrix}(x, dir, path, child = FALSE)
 
 \S4method{stageObject}{DelayedMatrix}(x, dir, path, child = FALSE)
+
+recycleHdf5Files(recycle)
 }
 \arguments{
 \item{x}{An array, almost always integer or numeric, though logical and character matrices are also supported.
@@ -30,6 +33,8 @@ Alternatively, a \linkS4class{DelayedArray} or any instance of a \linkS4class{Ma
 \item{child}{Logical scalar indicating whether \code{x} is a child of a larger object.}
 
 \item{preserve}{Whether to preserve delayed operations using the \pkg{chihaya} specification.}
+
+\item{recycle}{Whether to recycle existing files for HDF5-backed DelayedArrays.}
 }
 \value{
 For the \code{stageObject} methods, the array is saved into a single file at \code{file.path(dir, path)}, possibly after appending an arbitrary file extension. 
