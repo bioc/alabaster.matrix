@@ -59,7 +59,7 @@ NULL
 #' @importFrom alabaster.base .chooseMissingStringPlaceholder .addMissingStringPlaceholderAttribute
 .stage_array <- function(x, dir, path, child=FALSE) {
     dir.create(file.path(dir, path), showWarnings=FALSE)
-    xpath <- file.path(path, "array.h5")
+    xpath <- paste0(path, "/array.h5")
     ofile <- file.path(dir, xpath)
 
     missing.placeholder <- NULL
@@ -129,7 +129,7 @@ setMethod("stageObject", "array", function(x, dir, path, child=FALSE) .stage_arr
     }
 
     dir.create(file.path(dir, path), showWarnings=FALSE)
-    xpath <- file.path(path, "delayed.h5")
+    xpath <- paste0(path, "/delayed.h5")
     chihaya::saveDelayed(x, file.path(dir, xpath), "data")
 
     list(
@@ -151,7 +151,7 @@ setMethod("stageObject", "DelayedArray", function(x, dir, path, child=FALSE) .st
 #' @importFrom HDF5Array writeHDF5Array
 .stage_sparse_matrix <- function(x, dir, path, child=FALSE) {
     dir.create(file.path(dir, path), showWarnings=FALSE)
-    xpath <- file.path(path, "matrix.h5")
+    xpath <- paste0(path, "/matrix.h5")
     ofile <- file.path(dir, xpath)
 
     h5createFile(ofile)

@@ -71,7 +71,7 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
 
     if (use_tenx) {
         by_column <- TRUE # must be column major.
-        h5writeDataset(dim(mat), handle, file.path(name, "shape"))
+        h5writeDataset(dim(mat), handle, paste0(name, "/shape"))
     } else {
         if (by_column) {
             format <- "csr_matrix"
@@ -107,7 +107,7 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
 
     h5createDataset(
         handle,
-        file.path(name, "data"),
+        paste0(name, "/data"),
         dims = details$count,
         H5type = htype,
         chunk = chunk_dim
@@ -115,7 +115,7 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
 
     h5createDataset(
         handle,
-        file.path(name, "indices"),
+        paste0(name, "/indices"),
         dims = details$count,
         H5type = itype,
         chunk = chunk_dim
@@ -126,11 +126,11 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
         # Dump it directly to file if we're dealing with a dgCMatrix.
         h5writeDataset(mat@x, 
             handle, 
-            file.path(name, "data")
+            paste0(name, "/data")
         )
         h5writeDataset(mat@i, 
             handle, 
-            file.path(name, "indices")
+            paste0(name, "/indices")
         )
         out <- mat@p
 
@@ -164,7 +164,7 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
         out <- c(0, cumsum(out))
     }
 
-    iname <- file.path(name, "indptr")
+    iname <- paste0(name, "/indptr")
     h5createDataset(
         handle,
         iname,
@@ -289,10 +289,10 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
     newlast <- last + length(primary)
     index <- list(last + seq_along(primary))
 
-    iname <- file.path(name, "indices")
+    iname <- paste0(name, "/indices")
     h5writeDataset(secondary - 1L, file, iname, index = index)
 
-    vname <- file.path(name, "data")
+    vname <- paste0(name, "/data")
     h5writeDataset(v, file, vname, index = index)
 
     list(number=tabulate(primary, ndim), last=newlast)
@@ -303,10 +303,10 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
     newlast <- last + length(mat@x)
     index <- list(last + seq_along(mat@i))
 
-    iname <- file.path(name, "indices")
+    iname <- paste0(name, "/indices")
     h5writeDataset(mat@i, file, iname, index = index)
 
-    vname <- file.path(name, "data")
+    vname <- paste0(name, "/data")
     h5writeDataset(mat@x, file, vname, index = index)
 
     list(number=diff(mat@p), last=newlast)
