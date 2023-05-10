@@ -7,11 +7,9 @@
 #' @param dir String containing the path to the staging directory.
 #' @param path String containing the relative path to a subdirectory inside the staging directory, in which \code{x} is to be saved.
 #' @param child Logical scalar indicating whether \code{x} is a child of a larger object.
-#' @param preserve Whether to preserve delayed operations using the \pkg{chihaya} specification.
-#' @param recycle Whether to recycle existing files for HDF5-backed DelayedArrays.
 #' 
 #' @return
-#' For the \code{stageObject} methods, the array is saved into a single file at \code{file.path(dir, path)}, possibly after appending an arbitrary file extension. 
+#' \code{x} is saved into a single file at \code{file.path(dir, path)}, possibly after appending an arbitrary file extension. 
 #' A named list is returned, containing at least:
 #' \itemize{
 #' \item \code{$schema}, a string specifying the schema to use to validate the metadata.
@@ -19,11 +17,9 @@
 #' \item \code{is_child}, a logical scalar equal to the input \code{child}.
 #' }
 #'
-#' For \code{preserveDelayedOperations}, a logical scalar is returned indicating whether delayed operations are to be preserved by the DelayedArray method.
-#' If \code{preserve} is supplied, it is used to set this scalar, and the \emph{previous} value of the scalar is returned.
-#'
 #' @details
-#' The default behavior is to save the array as a dense matrix in a HDF5 file using methods from the \pkg{HDF5Array} package.
+#' For dense arrays, we save the array as a dense matrix in a HDF5 file using methods from the \pkg{HDF5Array} package.
+#' For sparse matrices, we call \code{\link{writeSparseMatrix}} to save the data in the 10X sparse matrix format.
 #' Other representations may have more appropriate formats, which are supported by simply writing new methods for this generic.
 #' Note that specialized methods will usually require new schemas to validate any new metadata fields.
 #'
@@ -31,15 +27,10 @@
 #' This is because \code{stageObject} methods may add more path components, file extensions, etc. to the input \code{path} when saving the object.
 #' As a result, the output \code{path} may not be the same as the input \code{path}.
 #'
-#' By default, \code{preserveDelayedOperations()} is \code{FALSE} so any DelayedArray \code{x} will be saved as a dense HDF5 dataset.
-#' If \code{preserveDelayedOperations()} is \code{TRUE}, DelayedArrays will instead be saved in the \pkg{chihaya} specification,
-#' where the delayed operations are themselves stored in the HDF5 file (see \url{https://ltla.github.io/chihaya} for details).
+#' @seealso
+#' \code{\link{preserveDelayedOperations}}, to preserve the delayed'ness of a \linkS4class{DelayedMatrix} \code{x}.
 #'
-#' If \code{recycleHdf5Files()} is \code{TRUE}, \code{stageObject} will attempt to link/copy existing files for any HDF5-backed DelayedArray instances 
-#' (most specifically, \linkS4class{HDF5Array} objects and \linkS4class{H5SparseMatrix} objects using the 10X format).
-#' This avoids re-serialization of the data for faster staging, at the risk of accidentally including other data in the existing file that was not meant to be staged.
-#' Users should only enable this option if it is known that the existing file contains nothing but the matrix data.
-#' Also note that any dimnames on \code{x} will be ignored during recycling.
+#' \code{\link{recycleHdf5Files}}, to re-use the existing file in a HDF5-backed \linkS4class{DelayedMatrix} \code{x}.
 #'
 #' @author Aaron Lun
 #' @examples
@@ -156,22 +147,6 @@ setMethod("stageObject", "array", function(x, dir, path, child=FALSE) .stage_arr
 #' @rdname stageArray
 setMethod("stageObject", "DelayedArray", function(x, dir, path, child=FALSE) .stage_delayed(x, dir, path, child = child, fallback = .stage_array))
 
-staging.options <- new.env()
-staging.options$preserve.delayed <- FALSE
-staging.options$recycle.hdf5 <- FALSE
-
-#' @export
-#' @rdname stageArray
-preserveDelayedOperations <- function(preserve) {
-    prev <- staging.options$preserve.delayed
-    if (missing(preserve)) {
-        prev
-    } else {
-        staging.options$preserve.delayed <- preserve
-        invisible(prev)
-    }
-}
-
 #' @importFrom rhdf5 h5createFile h5createGroup
 #' @importFrom HDF5Array writeHDF5Array
 .stage_sparse_matrix <- function(x, dir, path, child=FALSE) {
@@ -213,18 +188,6 @@ setMethod("stageObject", "Matrix", function(x, dir, path, child=FALSE) .stage_an
 #' @export
 #' @rdname stageArray
 setMethod("stageObject", "DelayedMatrix", function(x, dir, path, child=FALSE) .stage_delayed(x, dir, path, child = child, fallback = .stage_any_matrix))
-
-#' @export
-#' @rdname stageArray
-recycleHdf5Files <- function(recycle) {
-    prev <- staging.options$recycle.hdf5
-    if (missing(recycle)) {
-        prev
-    } else {
-        staging.options$recycle.hdf5 <- recycle
-        invisible(prev)
-    }
-}
 
 .link_or_copy <- function(from, to) {
     if (!file.link(from, to)) {

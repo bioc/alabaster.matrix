@@ -4,23 +4,17 @@
 \alias{stageArray}
 \alias{stageObject,array-method}
 \alias{stageObject,DelayedArray-method}
-\alias{preserveDelayedOperations}
 \alias{stageObject,Matrix-method}
 \alias{stageObject,DelayedMatrix-method}
-\alias{recycleHdf5Files}
 \title{Stage a multi-dimensional array for upload}
 \usage{
 \S4method{stageObject}{array}(x, dir, path, child = FALSE)
 
 \S4method{stageObject}{DelayedArray}(x, dir, path, child = FALSE)
 
-preserveDelayedOperations(preserve)
-
 \S4method{stageObject}{Matrix}(x, dir, path, child = FALSE)
 
 \S4method{stageObject}{DelayedMatrix}(x, dir, path, child = FALSE)
-
-recycleHdf5Files(recycle)
 }
 \arguments{
 \item{x}{An array, almost always integer or numeric, though logical and character matrices are also supported.
@@ -31,38 +25,28 @@ Alternatively, a \linkS4class{DelayedArray} or any instance of a \linkS4class{Ma
 \item{path}{String containing the relative path to a subdirectory inside the staging directory, in which \code{x} is to be saved.}
 
 \item{child}{Logical scalar indicating whether \code{x} is a child of a larger object.}
-
-\item{preserve}{Whether to preserve delayed operations using the \pkg{chihaya} specification.}
-
-\item{recycle}{Whether to recycle existing files for HDF5-backed DelayedArrays.}
 }
 \value{
-For the \code{stageObject} methods, the array is saved into a single file at \code{file.path(dir, path)}, possibly after appending an arbitrary file extension. 
+\code{x} is saved into a single file at \code{file.path(dir, path)}, possibly after appending an arbitrary file extension. 
 A named list is returned, containing at least:
 \itemize{
 \item \code{$schema}, a string specifying the schema to use to validate the metadata.
 \item \code{path}, a string containing the path to the file inside the subdirectory, containing the assay contents.
 \item \code{is_child}, a logical scalar equal to the input \code{child}.
 }
-
-For \code{preserveDelayedOperations}, a logical scalar is returned indicating whether delayed operations are to be preserved by the DelayedArray method.
-If \code{preserve} is supplied, it is used to set this scalar, and the \emph{previous} value of the scalar is returned.
 }
 \description{
 Stage a high-dimensional array in preparation for upload to DataSetDB.
 }
 \details{
-The default behavior is to save the array as a dense matrix in a HDF5 file using methods from the \pkg{HDF5Array} package.
+For dense arrays, we save the array as a dense matrix in a HDF5 file using methods from the \pkg{HDF5Array} package.
+For sparse matrices, we call \code{\link{writeSparseMatrix}} to save the data in the 10X sparse matrix format.
 Other representations may have more appropriate formats, which are supported by simply writing new methods for this generic.
 Note that specialized methods will usually require new schemas to validate any new metadata fields.
 
 If \code{x} itself is a child of a larger object, we suggest using the output \code{path} when referencing \code{x} from within the larger object's metadata.
 This is because \code{stageObject} methods may add more path components, file extensions, etc. to the input \code{path} when saving the object.
 As a result, the output \code{path} may not be the same as the input \code{path}.
-
-By default, \code{preserveDelayedOperations()} is \code{FALSE} so any DelayedArray \code{x} will be saved as a dense HDF5 dataset.
-If \code{preserveDelayedOperations()} is \code{TRUE}, DelayedArrays will instead be saved in the \pkg{chihaya} specification,
-where the delayed operations are themselves stored in the HDF5 file (see \url{https://ltla.github.io/chihaya} for details).
 }
 \examples{
 dir <- tempfile()
@@ -80,6 +64,11 @@ stageObject(mat, dir, path)
 
 list.files(dir)
 
+}
+\seealso{
+\code{\link{preserveDelayedOperations}}, to preserve the delayed'ness of a \linkS4class{DelayedMatrix} \code{x}.
+
+\code{\link{recycleHdf5Files}}, to re-use the existing file in a HDF5-backed \linkS4class{DelayedMatrix} \code{x}.
 }
 \author{
 Aaron Lun
