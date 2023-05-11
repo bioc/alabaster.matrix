@@ -33,7 +33,13 @@ By default, this should be a string containing the path to a staging directory.}
 Utilities for loading an array saved by \code{\link{stageObject}}.
 }
 \details{
-For \code{.createArraySeed}, the array should be one of \code{hdf5_dense_array}, \code{hdf5_sparse_matrix} or \code{hdf5_delayed_array}.
+For \code{.createArraySeed}, the array should be one of:
+\itemize{
+\item \code{hdf5_dense_array}
+\item \code{hdf5_sparse_matrix}
+\item \code{hdf5_delayed_array}
+\item \code{amalgamated_array}
+}
 
 For delayed arrays, the file may contain a seed array with the \code{"custom alabaster local array"} type.
 This should have a \code{path} dataset containing a relative path to another array in the same \code{project}, which is loaded and used as the seed for this delayed array.

@@ -15,7 +15,13 @@
 #' \code{.extractArrayDimnames} returns a list of character vectors or \code{NULL}, containing the dimnames.
 #'
 #' @details
-#' For \code{.createArraySeed}, the array should be one of \code{hdf5_dense_array}, \code{hdf5_sparse_matrix} or \code{hdf5_delayed_array}.
+#' For \code{.createArraySeed}, the array should be one of:
+#' \itemize{
+#' \item \code{hdf5_dense_array}
+#' \item \code{hdf5_sparse_matrix}
+#' \item \code{hdf5_delayed_array}
+#' \item \code{amalgamated_array}
+#' }
 #'
 #' For delayed arrays, the file may contain a seed array with the \code{"custom alabaster local array"} type.
 #' This should have a \code{path} dataset containing a relative path to another array in the same \code{project}, which is loaded and used as the seed for this delayed array.
@@ -90,6 +96,10 @@
 
         name.group <- if (names) info$hdf5_sparse_matrix$dimnames else NULL
         return(.array_namer(out, path, name.group))
+    }
+
+    if ("amalgamated_array" %in% names(info)) {
+        return(.load_amalgamated_array(info, project))
     }
 
     stop("unsupported type '", info$`_extra`$type, "'")

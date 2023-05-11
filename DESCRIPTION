@@ -12,6 +12,7 @@ Description:
 Imports:
     methods,
     BiocGenerics,
+    S4Vectors,
     DelayedArray (>= 0.27.2),
     rhdf5,
     HDF5Array,
@@ -21,7 +22,6 @@ Suggests:
     testthat,
     knitr,
     BiocStyle,
-    S4Vectors,
     chihaya
 VignetteBuilder: knitr
 RoxygenNote: 7.2.3
