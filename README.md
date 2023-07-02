@@ -1,13 +1,17 @@
 # Save array-like objects to file
 
+|Environment|Status|
+|---|---|
+|BioC-release|[![Release OK](https://bioconductor.org/shields/build/release/bioc/alabaster.matrix.svg)](http://bioconductor.org/checkResults/release/bioc-LATEST/alabaster.matrix/)|
+|BioC-devel|[![Devel OK](https://bioconductor.org/shields/build/devel/bioc/alabaster.matrix.svg)](http://bioconductor.org/checkResults/devel/bioc-LATEST/alabaster.matrix/)|
+
 The **alabaster.matrix** package implements methods for saving and loading matrix- or array-like objects under the **alabaster** framework.
 It provides a language-agnostic method for serializing data in arrays or abstractions thereof.
-To get started, install the package and its dependencies from GitHub:
+To get started, install the package and its dependencies from Bioconductor:
 
 ```r
-devtools::install_github("ArtifactDB/alabaster.schemas")
-devtools::install_github("ArtifactDB/alabaster.base")
-devtools::install_github("ArtifactDB/alabaster.matrix")
+install.packages("BiocManager")
+BiocManager::install("alabaster.matrix")
 ```
 
 A sparse matrix can be saved to a HDF5 file in compressed sparse column format:
@@ -46,6 +50,7 @@ meta <- stageObject(y, tmp, "simple")
 meta[["$schema"]]
 ## [1] "hdf5_sparse_matrix/v1.json"
 
+# But we can enable the delayed'ness explicitly, if so desired.
 old <- preserveDelayedOperations(TRUE)
 meta <- stageObject(y, tmp, "delayed")
 meta[["$schema"]]
