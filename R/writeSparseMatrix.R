@@ -88,8 +88,32 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
     }
 
     # Scan through and guess the best types.
-    details <- .extract_details(mat)
-    htype <- paste0("H5T_NATIVE_", details$type)
+    details <- .extract_sparse_details(mat)
+    any.neg <- details$negative
+    any.nonint <- details$non.integer
+    count <- details$count
+
+    if (any.nonint) {
+        type <- "DOUBLE"
+    } else if (any.neg) {
+        type <- "INT32"
+    } else {
+        extreme <- details$extreme
+
+        # We don't try to save it as a byte, because that gets interpreted by
+        # rhdf5 as a raw vector... not helpful.
+        if (extreme < 2^16) {
+            type <- "UINT16"
+        } else if (extreme < 2^31) {
+            # Don't attempt to use unsigned 32-bit ints; values between 2^31
+            # and 2^32 will fail to be converted to R's signed integers.
+            type <- "INT32"
+        } else {
+            type <- "DOUBLE"
+        }
+    }
+
+    htype <- paste0("H5T_NATIVE_", type)
 
     if (by_column) {
         max.index <- nrow(mat)
@@ -121,99 +145,90 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
         chunk = chunk_dim
     )
 
-    out <- NULL
-    if (is(mat, "dgCMatrix") && by_column) {
-        # Dump it directly to file if we're dealing with a dgCMatrix.
-        h5writeDataset(mat@x, 
-            handle, 
-            paste0(name, "/data")
-        )
-        h5writeDataset(mat@i, 
-            handle, 
-            paste0(name, "/indices")
-        )
-        out <- mat@p
-
+    if (by_column) {
+        p <- .dump_column_sparse_matrix(mat, handle, data.path=paste0(name, "/data"), index.path=paste0(name, "/indices"), start=NULL)
     } else {
-        last <- 0 # make this a double to avoid overflow.
-
-        seeds <- .is_delayed_cbind_dgCMatrix(mat)
-        if (!is.null(seeds) && by_column) {
-            out <- vector("list", length(seeds))
-            for (i in seq_along(seeds)) {
-                cout <- .cbind_dgCMatrix_sparse_writer(seeds[[i]], last, file=handle, name=name)
-                out[[i]] <- cout$number
-                last <- cout$last
-            }
-        } else {
-            if (by_column) {
-                grid <- colAutoGrid(mat)
-            } else {
-                grid <- rowAutoGrid(mat)
-            }
-            out <- vector("list", length(grid))
-            for (i in seq_along(grid)) {
-                block <- read_sparse_block(mat, grid[[i]])
-                cout <- .blockwise_sparse_writer(block, last, file=handle, name=name, by_column=by_column)
-                out[[i]] <- cout$number
-                last <- cout$last
-            }
-        }
-
-        out <- as.double(unlist(out))
-        out <- c(0, cumsum(out))
+        p <- .dump_row_sparse_matrix(mat, handle, data.path=paste0(name, "/data"), index.path=paste0(name, "/indices"), start=NULL)
     }
+    indptrs <- c(0, cumsum(as.double(p)))
 
     iname <- paste0(name, "/indptr")
     h5createDataset(
         handle,
         iname,
-        dims = length(out),
+        dims = length(indptrs),
         H5type = "H5T_NATIVE_UINT64"
     )
 
-    h5writeDataset(out, handle, iname)
+    h5writeDataset(indptrs, handle, iname)
 }
 
-.extract_details_dsparseMatrix <- function(mat) {
+####################################################
+
+setGeneric(".extract_sparse_details", function(x) standardGeneric(".extract_sparse_details"))
+
+#' @importClassesFrom Matrix dsparseMatrix
+#' @importFrom DelayedArray getAutoBlockLength type
+setMethod(".extract_sparse_details", "dsparseMatrix", function(x) {
     any.nonint <- FALSE
-    i <- 0
-    while (i <= length(mat@x)) {
-        end <- i + 10000000L 
-        current <- mat@x[i:min(end, length(mat@x))]
+    i <- 1L
+    chunksize <- getAutoBlockLength(type(x))
+
+    while (i <= length(x@x)) {
+        end <- i + chunksize - 1L
+        current <- x@x[i:min(end, length(x@x))]
         if (any(current%%1!=0)) {
             any.nonint <- TRUE
             break
         }
-        i <- end
+        i <- end + 1L
     }
 
-    limits <- range(mat@x)
+    limits <- range(x@x)
     list(
         negative = limits[1] < 0, 
         extreme = max(abs(limits)),
         non.integer = any.nonint,
-        count = length(mat@x)
+        count = length(x@x)
+    )
+})
+
+#' @importClassesFrom SparseArray SVT_SparseMatrix
+setMethod(".extract_sparse_details", "SVT_SparseMatrix", function(x) {
+    limits <- range(unlist(lapply(x@SVT, function(x) range(x[[2]]))))
+    non.int <- any(vapply(x@SVT, function(x) any(x[[2]]%%1 != 0), TRUE))
+    count <- sum(vapply(x@SVT, function(x) length(x[[1]]), 0L))
+    list(
+        negative = limits[1] < 0, 
+        extreme = max(abs(limits)),
+        non.integer = non.int,
+        count = count
+    )
+})
+
+#' @importClassesFrom DelayedArray DelayedSetDimnames
+setMethod(".extract_sparse_details", "DelayedSetDimnames", function(x) .extract_sparse_details(x@seed))
+
+.combine_extracted_details <- function(collected) {
+    list(
+        negative = any(vapply(collected, function(y) y$negative, TRUE)),
+        extreme = max(unlist(lapply(collected, function(y) y$extreme))),
+        non.integer = any(vapply(collected, function(y) y$non.integer, TRUE)),
+        count = sum(unlist(lapply(collected, function(y) y$count)))
     )
 }
 
-.is_delayed_cbind_dgCMatrix <- function(mat) {
-    if (is(mat, "DelayedMatrix")) {
-        seed <- mat@seed
-        if (is(seed, "DelayedSetDimnames")) {
-            seed <- seed@seed
-        }
-        if (is(seed, "DelayedAbind") && seed@along == 2L) {
-            if (all(vapply(seed@seeds, is, class="dgCMatrix", TRUE))) {
-                return(seed@seeds)
-            }
-        }
-    }
-    return(NULL)
-}
+#' @importClassesFrom DelayedArray DelayedAbind
+setMethod(".extract_sparse_details", "DelayedAbind", function(x) {
+    collected <- lapply(x@seeds, .extract_sparse_details)
+    .combine_extracted_details(collected)
+})
+
+#' @importClassesFrom DelayedArray DelayedMatrix
+setMethod(".extract_sparse_details", "DelayedMatrix", function(x) .extract_sparse_details(x@seed))
 
 #' @importFrom DelayedArray nzdata
-.extract_details_DelayedArray <- function(sparse) {
+.extract_sparse_details_fragment <- function(sparse) {
     vals <- nzdata(sparse)
     any.negative <- any(vals < 0)
     any.nonint <- any(vals != round(vals))
@@ -221,54 +236,133 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
     list(negative=any.negative, non.integer=any.nonint, extreme=extreme.val, count=length(vals))
 }
 
-#' @importFrom DelayedArray blockApply colAutoGrid
-#' @importClassesFrom Matrix dsparseMatrix
-.extract_details <- function(mat) {
-    if (is(mat, "dsparseMatrix")) {
-        details <- .extract_details_dsparseMatrix(mat)
-        any.neg <- details$negative
-        any.nonint <- details$non.integer
-        extreme <- details$extreme
-        count <- details$count
+#' @importFrom DelayedArray blockApply
+setMethod(".extract_sparse_details", "ANY", function(x) {
+    collected <- blockApply(x, FUN = .extract_sparse_details_fragment, as.sparse = TRUE) # any grid works here.
+    .combine_extracted_details(collected)
+})
 
+####################################################
+
+setGeneric(".dump_column_sparse_matrix", function(x, handle, index.path, data.path, start) standardGeneric(".dump_column_sparse_matrix"))
+
+#' @importFrom rhdf5 h5writeDataset
+#' @importClassesFrom Matrix dgCMatrix
+setMethod(".dump_column_sparse_matrix", "dgCMatrix", function(x, handle, index.path, data.path, start) {
+    if (is.null(start)) {
+        h5writeDataset(x@x, handle, data.path)
+        h5writeDataset(x@i, handle, index.path)
     } else {
-        seeds <- .is_delayed_cbind_dgCMatrix(mat)
-        if (!is.null(seeds)) {
-            out <- lapply(seeds, .extract_details_dsparseMatrix)
-        } else {
-            out <- blockApply(mat, FUN = .extract_details_DelayedArray, as.sparse = TRUE) # any grid works here.
-        }
+        index <- list(as.double(start) + seq_along(x@x))
+        h5writeDataset(x@x, handle, data.path, index=index)
+        h5writeDataset(x@i, handle, index.path, index=index)
+    }
+    diff(x@p)
+})
 
-        any.neg <- any(vapply(out, function(y) y$negative, TRUE))
-        any.nonint <- any(vapply(out, function(y) y$non.integer, TRUE))
-        extreme <- max(unlist(lapply(out, function(y) y$extreme)))
-        count <- sum(unlist(lapply(out, function(y) y$count)))
+.sanitize_start <- function(start) {
+    if (is.null(start)) {
+        0
+    } else {
+        as.double(start) # avoid integer overflow
+    }
+}
+
+#' @importFrom rhdf5 h5writeDataset
+#' @importClassesFrom SparseArray SVT_SparseMatrix
+#' @importFrom DelayedArray getAutoBlockSize type 
+setMethod(".dump_column_sparse_matrix", "SVT_SparseMatrix", function(x, handle, index.path, data.path, start) {
+    # Processing things in chunks to reduce the number of HDF5 calls.
+    chunksize <- min(getAutoBlockLength("integer"), getAutoBlockLength(type(x)))
+    column.counts <- vapply(x@SVT, function(y) length(y[[1]]), 0L)
+
+    start <- .sanitize_start(start)
+    cached <- 0
+    last.cleared <- 0L
+
+    for (i in seq_len(ncol(x))) {
+        cached <- cached + column.counts[i]
+
+        if (cached >= chunksize || i == ncol(x)) {
+            targets <- x@SVT[(last.cleared + 1L):i]
+            all.i <- unlist(lapply(targets, function(y) y[[1]]))
+            all.d <- unlist(lapply(targets, function(y) y[[2]]))
+
+            index <- list(start + seq_along(all.i))
+            h5writeDataset(all.i, handle, index.path, index = index)
+            h5writeDataset(all.d, handle, data.path, index = index)
+
+            last.cleared <- i
+            cached <- 0
+            start <- start + length(all.i)
+        }
     }
 
-    if (any.nonint) {
-        type <- "DOUBLE"
-    } else if (any.neg) {
-        type <- "INT32"
-    } else {
-        # We don't try to save it as a byte, because that gets interpreted by
-        # rhdf5 as a raw vector... not helpful.
-        if (extreme < 2^16) {
-            type <- "UINT16"
-        } else if (extreme < 2^31) {
-            # Don't attempt to use unsigned 32-bit ints; values between 2^31
-            # and 2^32 will fail to be converted to R's signed integers.
-            type <- "INT32"
-        } else {
-            type <- "DOUBLE"
-        }
+    column.counts
+})
+
+#' @importClassesFrom DelayedArray DelayedSetDimnames
+setMethod(".dump_column_sparse_matrix", "DelayedSetDimnames", function(x, handle, index.path, data.path, start) {
+    .dump_column_sparse_matrix(x@seed, handle, index.path, data.path, start)
+})
+
+#' @importClassesFrom DelayedArray DelayedMatrix
+setMethod(".dump_column_sparse_matrix", "DelayedMatrix", function(x, handle, index.path, data.path, start) {
+    .dump_column_sparse_matrix(x@seed, handle, index.path, data.path, start)
+})
+
+#' @importClassesFrom DelayedArray DelayedAbind
+setMethod(".dump_column_sparse_matrix", "DelayedAbind", function(x, handle, index.path, data.path, start) {
+    if (x@along != 2L) {
+        return(callNextMethod()) # goes to the ANY method.
     }
 
-    list(type=type, count=count)
+    start <- .sanitize_start(start)
+    collected <- vector("list", length(x@seeds))
+    for (s in seq_along(x@seeds)) {
+        current <- .dump_column_sparse_matrix(x@seeds[[s]], handle, index.path, data.path, start=start)
+        collected[[s]] <- current
+        start <- start + sum(as.double(current))
+    }
+
+    unlist(collected)
+})
+
+#' @importFrom DelayedArray colAutoGrid read_sparse_block
+setMethod(".dump_column_sparse_matrix", "ANY", function(x, handle, index.path, data.path, start) {
+    start <- .sanitize_start(start)
+    grid <- colAutoGrid(x)
+    out <- vector("list", length(grid))
+
+    for (i in seq_along(grid)) {
+        block <- read_sparse_block(x, grid[[i]])
+        cout <- .blockwise_sparse_writer(block, start, file=handle, index.path=index.path, data.path=data.path, by_column=TRUE)
+        out[[i]] <- cout$number
+        start <- cout$last
+    }
+
+    unlist(out)
+})
+
+#' @importFrom DelayedArray rowAutoGrid read_sparse_block
+.dump_row_sparse_matrix <- function(x, handle, index.path, data.path, start) {
+    start <- .sanitize_start(start)
+    grid <- rowAutoGrid(x)
+    out <- vector("list", length(grid))
+
+    for (i in seq_along(grid)) {
+        block <- read_sparse_block(x, grid[[i]])
+        cout <- .blockwise_sparse_writer(block, start, file=handle, index.path=index.path, data.path=data.path, by_column=FALSE)
+        out[[i]] <- cout$number
+        start <- cout$last
+    }
+
+    unlist(out)
 }
 
 #' @importFrom DelayedArray nzindex nzdata
 #' @importFrom rhdf5 h5writeDataset
-.blockwise_sparse_writer <- function(block, last, file, name, by_column=FALSE) {
+.blockwise_sparse_writer <- function(block, last, file, index.path, data.path, by_column) {
     nzdex <- nzindex(block)
     if (by_column) {
         primary <- nzdex[, 2]
@@ -288,26 +382,8 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
 
     newlast <- last + length(primary)
     index <- list(last + seq_along(primary))
-
-    iname <- paste0(name, "/indices")
-    h5writeDataset(secondary - 1L, file, iname, index = index)
-
-    vname <- paste0(name, "/data")
-    h5writeDataset(v, file, vname, index = index)
+    h5writeDataset(secondary - 1L, file, index.path, index = index)
+    h5writeDataset(v, file, data.path, index = index)
 
     list(number=tabulate(primary, ndim), last=newlast)
-}
-
-#' @importFrom rhdf5 h5writeDataset
-.cbind_dgCMatrix_sparse_writer <- function(mat, last, file, name) {
-    newlast <- last + length(mat@x)
-    index <- list(last + seq_along(mat@i))
-
-    iname <- paste0(name, "/indices")
-    h5writeDataset(mat@i, file, iname, index = index)
-
-    vname <- paste0(name, "/data")
-    h5writeDataset(mat@x, file, vname, index = index)
-
-    list(number=diff(mat@p), last=newlast)
 }
