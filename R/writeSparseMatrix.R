@@ -82,8 +82,8 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
         ghandle <- H5Gopen(handle, name)
         on.exit(H5Gclose(ghandle), add = TRUE, after = FALSE)
 
-        h5writeAttribute(format, ghandle, "encoding-type", variableLengthString=TRUE, cset="UTF8", asScalar=TRUE)
-        h5writeAttribute("0.1.0", ghandle, "encoding-version", variableLengthString=TRUE, cset="UTF8", asScalar=TRUE)
+        h5writeAttribute(format, ghandle, "encoding-type", variableLengthString=TRUE, encoding="UTF8", asScalar=TRUE)
+        h5writeAttribute("0.1.0", ghandle, "encoding-version", variableLengthString=TRUE, encoding="UTF8", asScalar=TRUE)
         h5writeAttribute(rev(dim(mat)), ghandle, "shape")
     }
 
