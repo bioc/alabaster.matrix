@@ -39,3 +39,24 @@ test_that("Amalgamated staging and loading works as expected", {
     expect_s4_class(roundtrip, "AmalgamatedArray")
     expect_identical(as.array(roundtrip), as.array(mat))
 })
+
+library(alabaster.base)
+test_that("Amalgamated staging and loading works when the inner arrays are delayed wrappers", {
+    first <- DelayedArray(Matrix::rsparsematrix(10, 10, 0.1)) * 5
+    second <- DelayedArray(Matrix::rsparsematrix(10, 20, 0.1))
+    colnames(second) <- letters[1:20]
+    mat <- AmalgamatedArray(list(foo = first, bar = second), along=2)
+
+    temp <- tempfile()
+    dir.create(temp)
+    meta <- stageObject(mat, temp, "amalgam")
+    expect_identical(meta[["$schema"]], "amalgamated_array/v1.json")
+    expect_identical(meta$amalgamated_array$along, 1L)
+    info <- .writeMetadata(meta, temp)
+
+    remeta <- acquireMetadata(temp, info$path)
+    roundtrip <- loadObject(remeta, temp)
+    expect_s4_class(roundtrip, "AmalgamatedArray")
+    expect_identical(as.array(roundtrip), as.array(mat))
+})
+

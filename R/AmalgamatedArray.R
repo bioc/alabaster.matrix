@@ -111,14 +111,21 @@ extractComponents <- function(x) {
 
 #' @export
 #' @importFrom alabaster.base .stageObject .writeMetadata
+#' @importFrom DelayedArray DelayedArray
 setMethod("stageObject", "AmalgamatedArray", function(x, dir, path, child = FALSE) {
     dir.create(file.path(dir, path), showWarnings=FALSE)
 
     seed <- x@seed
     seeds <- seed@seeds
     components <- vector("list", length(seeds))
+
     for (i in seq_along(seeds)) {
-        meta <- .stageObject(seeds[[i]], dir, paste0(path, "/component", i), child = TRUE)
+        current.seed <- seeds[[i]]
+        out <- try(current.seed[0,0], silent=TRUE)
+        if (is(out, "try-error")) {
+            current.seed <- DelayedArray(current.seed)
+        }
+        meta <- .stageObject(current.seed, dir, paste0(path, "/component", i), child = TRUE)
         components[[i]] <- list(name = seed@samples[i], resource = .writeMetadata(meta, dir))
     }
 
