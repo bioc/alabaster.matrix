@@ -29,6 +29,51 @@ test_that("stageObject works as expected for the default method", {
     expect_error(alabaster.base::.writeMetadata(info, dir=dir), NA)
 })
 
+test_that("stageObject works as expected for NA values", {
+    dir <- tempfile()
+    odir <- file.path(dir, experiment)
+    dir.create(odir, recursive=TRUE)
+
+    storage.mode(arr) <- "integer"
+    {
+        info <- stageObject(arr, dir, file.path(experiment, "assay-0"))
+        fpath <- file.path(odir, "assay-0/array.h5")
+        out <- rhdf5::h5readAttributes(fpath, "data")
+        expect_false("missing-value-placeholder" %in% names(out))
+
+        arr2 <- loadArray(info, project=dir)
+        expect_identical(DelayedArray::type(arr2), "integer")
+        expect_equal(arr, as.array(arr2))
+    }
+
+    arr[1] <- NA
+    {
+        info <- stageObject(arr, dir, file.path(experiment, "assay-1"))
+        fpath <- file.path(odir, "assay-1/array.h5")
+        out <- rhdf5::h5readAttributes(fpath, "data")
+        expect_identical(out[["missing-value-placeholder"]], NA_integer_)
+
+        arr2 <- loadArray(info, project=dir)
+        expect_identical(DelayedArray::type(arr2), "integer")
+        expect_equal(arr, as.array(arr2))
+    }
+
+    storage.mode(arr) <- "double"
+    arr[2] <- NaN
+    arr[3] <- Inf
+    arr[4] <- -Inf
+    {
+        info <- stageObject(arr, dir, file.path(experiment, "assay-2"))
+        fpath <- file.path(odir, "assay-2/array.h5")
+        out <- rhdf5::h5readAttributes(fpath, "data")
+        expect_identical(out[["missing-value-placeholder"]], NA_real_)
+
+        arr2 <- loadArray(info, project=dir)
+        expect_identical(DelayedArray::type(arr2), "double")
+        expect_equal(arr, as.array(arr2))
+    }
+})
+
 test_that("stageObject works as expected without dimnames", {
     dir <- tempfile()
     odir <- file.path(dir, experiment)
@@ -182,4 +227,43 @@ test_that("stageObject recycles existing HDF5Arrays", {
     }
 })
 
+test_that("reading arrays work with non-default NA placeholders", {
+    dir <- tempfile()
+    dir.create(dir, recursive=TRUE)
 
+    # Dense case.
+    {
+        x <- matrix(rpois(1000, 2), 100, 10)
+        storage.mode(x) <- "integer"
+
+        info <- stageObject(x, dir, "dense")
+        alabaster.base::addMissingPlaceholderAttributeForHdf5(
+            file.path(dir, info$path), 
+            info$hdf5_dense_array$dataset, 
+            0L
+        )
+
+        arr2 <- loadArray(info, project=dir)
+        ref <- as.matrix(x)
+        ref[ref==0L] <- NA
+        expect_identical(ref, as.matrix(arr2))
+    }
+
+    # Sparse case.
+    {
+        x <- rsparsematrix(100, 20, 0.5)
+        first <- x@x[1]
+
+        info <- stageObject(x, dir, "sparse")
+        alabaster.base::addMissingPlaceholderAttributeForHdf5(
+            file.path(dir, info$path), 
+            paste0(info$hdf5_sparse_matrix$group, "/data"), 
+            first
+        )
+
+        arr2 <- loadArray(info, project=dir)
+        ref <- as.matrix(x)
+        ref[ref==first] <- NA
+        expect_identical(ref, as.matrix(arr2))
+    }
+})

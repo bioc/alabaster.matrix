@@ -60,14 +60,19 @@ test_that("DelayedMask works with special values", {
     # Also works with NaN values, whether the placeholder is NaN or not.
     original[1,1] <- NaN
 
-    masked <- DelayedMask(original, 1, force=TRUE)
+    masked <- DelayedMask(original, 1)
     ref <- as.matrix(original)
     ref[ref == 1] <- NA
     expect_identical(ref, as.matrix(masked))
 
-    masked <- DelayedMask(original, NaN, force=TRUE)
+    masked <- DelayedMask(original, NaN)
     ref <- as.matrix(original)
     ref[is.nan(ref)] <- NA
     expect_identical(ref, as.matrix(masked))
-})
 
+    # Same with a different type.
+    copy <- original
+    storage.mode(copy) <- "integer"
+    expect_identical(DelayedMask(copy, NA), copy)
+    expect_identical(DelayedMask(copy, NaN), copy)
+})

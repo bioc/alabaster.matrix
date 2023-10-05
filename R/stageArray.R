@@ -56,24 +56,20 @@ NULL
 #' @importFrom DelayedArray is_sparse
 #' @importFrom rhdf5 h5createFile 
 #' @importFrom HDF5Array writeHDF5Array
-#' @importFrom alabaster.base .chooseMissingStringPlaceholder .addMissingStringPlaceholderAttribute
-.stage_array <- function(x, dir, path, child=FALSE) {
+#' @importFrom alabaster.base transformVectorForHdf5 addMissingPlaceholderAttributeForHdf5
+.stage_array <- function(x, dir, path, child=FALSE, .version=2) {
     dir.create(file.path(dir, path), showWarnings=FALSE)
     xpath <- paste0(path, "/array.h5")
     ofile <- file.path(dir, xpath)
 
-    missing.placeholder <- NULL
-    if (type(x) == "character" && anyNA(x)) {
-        missing.placeholder <- .chooseMissingStringPlaceholder(x)
-        x[is.na(x)] <- missing.placeholder
-    }
+    transformed <- transformVectorForHdf5(x)
 
     h5createFile(ofile)
-    writeHDF5Array(x, filepath=ofile, name="data")
+    writeHDF5Array(transformed$transformed, filepath=ofile, name="data")
     nm <- .name_saver(x, ofile)
 
-    if (!is.null(missing.placeholder)) {
-        .addMissingStringPlaceholderAttribute(ofile, "data", missing.placeholder)
+    if (!is.null(transformed$placeholder)) {
+        addMissingPlaceholderAttributeForHdf5(ofile, "data", transformed$placeholder)
     }
 
     list(
@@ -83,7 +79,8 @@ NULL
         `array` = .grab_array_type(x),
         hdf5_dense_array = list(
             dataset = "data",
-            dimnames = nm
+            dimnames = nm,
+            version = 2
         )
     )
 }
@@ -166,7 +163,8 @@ setMethod("stageObject", "DelayedArray", function(x, dir, path, child=FALSE) .st
         hdf5_sparse_matrix = list(
             group = "sparse",
             format = "tenx_matrix",
-            dimnames = nm
+            dimnames = nm,
+            version = 2 
         )
     )
 }
@@ -247,7 +245,8 @@ setMethod("stageObject", "DelayedMatrix", function(x, dir, path, child=FALSE) .s
             `array` = .grab_array_type(x),
             hdf5_sparse_matrix = list(
                 group = x@group,
-                format = "tenx_matrix"
+                format = "tenx_matrix",
+                version = 2
             )
         )
 
@@ -262,7 +261,8 @@ setMethod("stageObject", "DelayedMatrix", function(x, dir, path, child=FALSE) .s
             is_child=child,
             `array` = .grab_array_type(x),
             hdf5_dense_array= list(
-                dataset=x@name
+                dataset=x@name,
+                version = 2
             )
         )
     }

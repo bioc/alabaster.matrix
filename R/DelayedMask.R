@@ -35,7 +35,13 @@
 #' @importClassesFrom DelayedArray DelayedArray
 DelayedMask <- function(x, placeholder, force=FALSE) {
     if (!force && is.na(placeholder)) {
-        return(x)
+        if (type(x) == "double") {
+            if (!is.nan(placeholder)) {
+                return(x)
+            }
+        } else {
+            return(x)
+        }
     }
 
     if (is(x, "DelayedArray")) {

@@ -71,15 +71,10 @@
         ds <- info$hdf5_dense_array$dataset
         out <- HDF5ArraySeed(filepath=path, name=ds, type=dtype)
 
-        # Handling NA values for character arrays.
-        if (type(out) == "character") {
-            attrs <- h5readAttributes(path, ds)
-            miss.place <- attrs[["missing-value-placeholder"]]
-            if (!is.null(miss.place)) {
-                out <- DelayedArray(out)
-                out[out == miss.place] <- NA_character_
-                out <- out@seed
-            }
+        attrs <- h5readAttributes(path, ds)
+        miss.place <- attrs[["missing-value-placeholder"]]
+        if (!is.null(miss.place)) {
+            out <- DelayedMask(out, placeholder=miss.place)
         }
 
         name.group <- if (names) info$hdf5_dense_array$dimnames else NULL
@@ -89,6 +84,12 @@
     if ("hdf5_sparse_matrix" %in% names(info)) {
         group <- info$hdf5_sparse_matrix$group
         out <- H5SparseMatrixSeed(filepath=path, group=group)
+
+        attrs <- h5readAttributes(path, paste0(group, "/data"))
+        miss.place <- attrs[["missing-value-placeholder"]]
+        if (!is.null(miss.place)) {
+            out <- DelayedMask(out, placeholder=miss.place)
+        }
 
         if (identical(info$array$type, "boolean")) {
             out <- (DelayedArray(out) != 0L)@seed

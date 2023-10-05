@@ -131,3 +131,33 @@ test_that("writing to a sparse matrix works with guessed index type for block me
         }
     }
 })
+
+test_that("writing to a sparse matrix works with NA values", {
+    library(HDF5Array)
+    x <- rsparsematrix(100, 20, 0.5)
+
+    # No NA's added.
+    {
+        tmp <- tempfile(fileext=".h5")
+        writeSparseMatrix(x, tmp, "csc_matrix")
+        expect_null(rhdf5::h5readAttributes(tmp, "csc_matrix/data")[["missing-value-placeholder"]])
+    }
+
+    # Double-precision mode.
+    x@x[1] <- NA
+    {
+        tmp <- tempfile(fileext=".h5")
+        writeSparseMatrix(x, tmp, "csc_matrix")
+        expect_identical(unname(as.matrix(H5SparseMatrix(tmp, "csc_matrix"))), unname(as.matrix(x)))
+        expect_identical(rhdf5::h5readAttributes(tmp, "csc_matrix/data")[["missing-value-placeholder"]], NA_real_)
+    }
+
+    # Integer mode.
+    x <- round(x)
+    {
+        tmp <- tempfile(fileext=".h5")
+        writeSparseMatrix(x, tmp, "csc_matrix")
+        expect_equal(unname(as.matrix(H5SparseMatrix(tmp, "csc_matrix"))), unname(as.matrix(x)))
+        expect_identical(rhdf5::h5readAttributes(tmp, "csc_matrix/data")[["missing-value-placeholder"]], NA_integer_)
+    }
+})
