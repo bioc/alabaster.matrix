@@ -91,6 +91,94 @@ test_that("stageObject works as expected for NA values", {
     }
 })
 
+test_that("saveObject type optimization works as expected", {
+    # Small unsigned integers
+    mat <- matrix(sample(255, 1000, replace=TRUE), 40, 25)
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    storage.mode(mat) <- "integer"
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    mat[100] <- NA
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    # Small signed integers
+    mat <- matrix(sample(255, 1000, replace=TRUE) - 128, 40, 25)
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    storage.mode(mat) <- "integer"
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    mat[100] <- NA
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    # Large integers
+    mat <- trunc(matrix(runif(1000, -1e6, 1e6), 40, 25))
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    storage.mode(mat) <- "integer"
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    mat[100] <- NA
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    # Other floating-point values.
+    mat <- matrix(rnorm(1000, -1e6, 1e6), 40, 25)
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    mat[100] <- NA
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    mat[101] <- NaN
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    # Logical values.
+    mat <- matrix(rbinom(1000, 1, 0.5) == 1, 40, 25)
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    mat[100] <- NA
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    # String values.
+    mat <- matrix(sample(LETTERS, 1000, replace=TRUE), 40, 25)
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+
+    mat[100] <- NA
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readArray(tmp)), mat)
+})
+
 test_that("stageObject works as expected without dimnames", {
     dir <- tempfile()
     odir <- file.path(dir, experiment)

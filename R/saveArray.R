@@ -33,38 +33,42 @@
 NULL
 
 #' @import alabaster.base rhdf5
-.save_array <- function(x, path, ...) {
+.save_array <- function(x, path, extract.native=NULL, ...) {
     dir.create(path)
     fpath <- file.path(path, "array.h5")
     name <- "dense_array"
 
-    # This needs to be wrapped up as writeHDF5Array needs to
-    # take ownership of the file handle internally.
-    local({
-        fhandle <- H5Fcreate(fpath, "H5F_ACC_TRUNC")
-        on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
-
-        ghandle <- H5Gcreate(fhandle, name)
-        on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
-
-        h5_write_attribute(ghandle, "version", "1.0", scalar=TRUE)
-        h5_write_attribute(ghandle, "type", array_type(x), scalar=TRUE)
-        h5_write_attribute(ghandle, "transposed", 1L, scalar=TRUE)
-    })
-
-    transformed <- transformVectorForHdf5(x)
-    writeHDF5Array(transformed$transformed, filepath=fpath, name="dense_array/data")
-
-    # Reinitializing the handle for more downstream work.
-    fhandle <- H5Fopen(fpath, "H5F_ACC_RDWR")
+    fhandle <- H5Fcreate(fpath, "H5F_ACC_TRUNC")
     on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
-    ghandle <- H5Gopen(fhandle, name)
+
+    ghandle <- H5Gcreate(fhandle, name)
     on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
 
-    if (!is.null(transformed$placeholder)) {
+    h5_write_attribute(ghandle, "version", "1.0", scalar=TRUE)
+    h5_write_attribute(ghandle, "type", array_type(x), scalar=TRUE)
+    h5_write_attribute(ghandle, "transposed", 1L, scalar=TRUE)
+
+    optimized <- optimize_storage(x)
+    h5_write_array(
+        ghandle, 
+        name="data", 
+        x=x, 
+        type=optimized$type, 
+        placeholder=optimized$placeholder, 
+        extract.native=extract.native
+    )
+
+    if (!is.null(optimized$placeholder)) {
         dhandle <- H5Dopen(ghandle, "data")
         on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
-        h5_write_attribute(dhandle, missingPlaceholderName, transformed$placeholder, scalar=TRUE)
+
+        # Patch until rhdf5::H5Awrite is fixed.
+        atype <- optimized$type
+        if (type(x) == "character") {
+            atype <- NULL
+        }
+
+        h5_write_attribute(dhandle, missingPlaceholderName, optimized$placeholder, type=atype, scalar=TRUE)
     }
 
     save_names(ghandle, x, transpose=TRUE)
@@ -74,11 +78,61 @@ NULL
 
 #' @export
 #' @rdname saveArray
-setMethod("saveObject", "array", .save_array)
+setMethod("saveObject", "array", function(x, path, ...) .save_array(x, path, extract.native=identity, ...))
 
 #' @export
 #' @rdname saveArray
-setMethod("saveObject", "denseMatrix", .save_array)
+setMethod("saveObject", "denseMatrix", function(x, path, ...) {
+    extract.native <- NULL
+    if (is(x, "dMatrix") || is(x, "lMatrix")) {
+        extract.native <- function(y) y@x
+    }
+    .save_array(x, path, extract.native=extract.native, ...)
+})
+
+##############################
+######### INTERNALS ##########
+##############################
+
+#' @importFrom HDF5Array getHDF5DumpCompressionLevel getHDF5DumpChunkDim
+#' @importFrom DelayedArray currentViewport
+#' @importFrom BiocGenerics start
+h5_write_array <- function(handle, name, x, type, placeholder, extract.native=NULL, compress=getHDF5DumpCompressionLevel(), chunks=NULL) {
+    shandle <- H5Screate_simple(dim(x))
+    on.exit(H5Sclose(shandle), add=TRUE, after=FALSE)
+
+    phandle <- H5Pcreate("H5P_DATASET_CREATE")
+    on.exit(H5Pclose(phandle), add=TRUE, after=FALSE)
+    H5Pset_fill_time(phandle, "H5D_FILL_TIME_ALLOC")
+
+    if (!is.null(compress) && compress > 0 && length(x)) {
+        H5Pset_deflate(phandle, level=compress)
+        if (is.null(chunks)) {
+            chunks <- getHDF5DumpChunkDim(dim(x))
+        }
+        H5Pset_chunk(phandle, chunks)
+    }
+
+    dhandle <- H5Dcreate(handle, name, dtype_id=type, h5space=shandle, dcpl=phandle)
+    on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
+
+    if (is.null(placeholder) && !is.null(extract.native)) {
+        # Writing is done from fastest dimension in R to fastest dimension in HDF5,
+        # so the transposition is implicit.
+        H5Dwrite(dhandle, extract.native(x))
+    } else {
+        blockApply(x, function(y) {
+            if (!is.null(placeholder) && anyMissing(y)) {
+                y[is.missing(y)] <- placeholder
+            }
+            mem_shandle <- H5Screate_simple(dim(y))
+            on.exit(H5Sclose(mem_shandle), add=TRUE, after=FALSE)
+            view <- currentViewport()
+            H5Sselect_hyperslab(shandle, "H5S_SELECT_SET", start=start(view), count=dim(view))
+            H5Dwrite(dhandle, y, h5spaceMem=mem_shandle, h5spaceFile=shandle)
+        })
+    }
+}
 
 ##############################
 ######### OLD STUFF ##########
