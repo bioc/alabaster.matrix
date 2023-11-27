@@ -398,3 +398,55 @@ test_that("storage optimization works for booleans", {
         expect_equal(out$placeholder, -1L)
     }
 })
+
+test_that("storage optimization works for sparse objects", {
+    old <- getAutoBlockSize()
+    setAutoBlockSize(400)
+    on.exit(setAutoBlockSize(old))
+
+    for (i in 1:3) {
+        if (i == 1L) {
+            fun <- function(x) as(x, "sparseMatrix")
+        } else if (i == 2L) {
+            fun <- function(x) as(x, "SVT_SparseMatrix")
+        } else {
+            fun <- function(x) DelayedArray(as(x, "SparseArraySeed"))
+        }
+
+        # Integer.
+        {
+             y <- matrix(0L, nrow=100, ncol=10)
+             y[1+sample(999, 100)] <- 10000L
+             y[1] <- NA
+
+             out <- alabaster.matrix:::optimize_storage(fun(y))
+             expect_identical(out$type, "H5T_NATIVE_UINT16")
+             expect_equal(out$placeholder, 2^16-1)
+             expect_identical(out$size, 101L)
+        }
+
+        # Boolean
+        {
+             y <- matrix(FALSE, nrow=100, ncol=10)
+             y[1+sample(999, 50)] <- TRUE 
+             y[1] <- NA
+
+             out <- alabaster.matrix:::optimize_storage(fun(y))
+             expect_identical(out$type, "H5T_NATIVE_INT8")
+             expect_equal(out$placeholder, -1L)
+             expect_identical(out$size, 51L)
+        }
+
+        # Number
+        {
+             y <- matrix(0, nrow=100, ncol=10)
+             y[1+sample(999, 200)] <- runif(200)
+             y[1] <- NA
+
+             out <- alabaster.matrix:::optimize_storage(fun(y))
+             expect_identical(out$type, "H5T_NATIVE_DOUBLE")
+             expect_equal(out$placeholder, NaN)
+             expect_identical(out$size, 201L)
+        }
+    }
+})
