@@ -52,9 +52,7 @@ test_that("sparse tests for DelayedMask", {
 
 test_that("DelayedMask works with special values", {
     original <- matrix(rpois(400, lambda=2), ncol=10)
-    expect_identical(DelayedMask(original, NA), original)
-
-    masked <- DelayedMask(original, NA, force=TRUE)
+    masked <- DelayedMask(original, NA)
     expect_identical(original, as.matrix(masked))
 
     # Also works with NaN values, whether the placeholder is NaN or not.
@@ -70,9 +68,25 @@ test_that("DelayedMask works with special values", {
     ref[is.nan(ref)] <- NA
     expect_identical(ref, as.matrix(masked))
 
-    # Same with a different type.
-    copy <- original
-    storage.mode(copy) <- "integer"
-    expect_identical(DelayedMask(copy, NA), copy)
-    expect_identical(DelayedMask(copy, NaN), copy)
+    # If the placeholder is NA, both NaNs and NAs are considered to be missing,
+    # as we don't rely on the payload (i.e., same logic as is.na()).
+    masked <- DelayedMask(original, NA)
+    ref <- as.matrix(original)
+    ref[is.nan(ref)] <- NA
+    expect_identical(ref, as.matrix(masked))
+
+    # No problem if the dataset is integer.
+    as.int <- original
+    storage.mode(as.int) <- "integer"
+    masked <- DelayedMask(as.int, NA_integer_)
+    expect_identical(as.int, as.matrix(masked))
+})
+
+test_that("DelayedMask fails for integers with non-NA placeholders", {
+    original <- matrix(NA_integer_, 10, 10)
+    masked <- DelayedMask(original, NA)
+    expect_identical(original, as.matrix(masked))
+
+    masked <- DelayedMask(original, 10L)
+    expect_error(as.matrix(masked), "not yet supported")
 })

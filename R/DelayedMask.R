@@ -6,10 +6,15 @@
 #' @param x An existing \pkg{DelayedArray} seed. 
 #' @param placeholder Placeholder value to replace with \code{NA}.
 #' This should be of the same type as \code{\link{type}(x)}.
-#' @param force Whether to forcibly create a DelayedMask if \code{placeholder} is already \code{NA}.
+#'
+#' @details
+#' If \code{\link{is.na}(placeholder)} is true for double-precision \code{x}, masking is performed for all values of \code{x} where \code{is.na} is true.
+#' This includes both NaNs and NAs; no attempt is made to distinguish between the NaN payloads.
+#'
+#' Currently, an error is raised for any integer \code{x} that produces non-missing values of -2^31 without a placeholder of \code{NA_integer_}.
+#' This is because R cannot distinguish the integer -2^31 from an integer-type NA.
 #'
 #' @return A DelayedMask object, to be wrapped in a \code{\link{DelayedArray}}.
-#' If \code{force=FALSE} and \code{placeholder} is already \code{NA}, \code{x} is directly returned.
 #'
 #' @author Aaron Lun
 #'
@@ -33,17 +38,7 @@
 #' @export
 #' @import methods
 #' @importClassesFrom DelayedArray DelayedArray
-DelayedMask <- function(x, placeholder, force=FALSE) {
-    if (!force && is.na(placeholder)) {
-        if (type(x) == "double") {
-            if (!is.nan(placeholder)) {
-                return(x)
-            }
-        } else {
-            return(x)
-        }
-    }
-
+DelayedMask <- function(x, placeholder) {
     if (is(x, "DelayedArray")) {
         x <- x@seed
     }
@@ -99,12 +94,26 @@ setMethod("OLD_extract_sparse_array", "DelayedMask", function(x, index) {
 
 .replace_missing <- function(vec, placeholder) {
     if (is.na(placeholder)) {
-        if (is.nan(placeholder)) {
-            vec[is.nan(vec)] <- NA
+        if (anyNA(vec)) {
+            if (is.double(vec)) {
+                vec[is.na(vec)] <- NA # convert NaNs as well.
+            } else {
+                # no-op, everything is already NA.
+            }
         }
     } else {
-        # Using which() here to avoid problems with existing NAs.
-        vec[which(vec == placeholder)] <- NA
+        if (anyNA(vec)) {
+            if (is.integer(vec)) {
+                # We don't want to incorrectly propagate -2^31 as NAs, so we
+                # just throw an error here. Better to fail than to silently
+                # modify the meaning of the data.
+                stop("integer arrays containing both -2^31 and NA are not yet supported")
+            } else {
+                vec[which(vec == placeholder)] <- NA # "which()" avoids problems with existing NaNs.
+            }
+        } else {
+            vec[vec == placeholder] <- NA
+        }
     }
     vec
 }

@@ -13,23 +13,27 @@
 \alias{OLD_extract_sparse_array,DelayedMask-method}
 \title{Delayed masking}
 \usage{
-DelayedMask(x, placeholder, force = FALSE)
+DelayedMask(x, placeholder)
 }
 \arguments{
 \item{x}{An existing \pkg{DelayedArray} seed.}
 
 \item{placeholder}{Placeholder value to replace with \code{NA}.
 This should be of the same type as \code{\link{type}(x)}.}
-
-\item{force}{Whether to forcibly create a DelayedMask if \code{placeholder} is already \code{NA}.}
 }
 \value{
 A DelayedMask object, to be wrapped in a \code{\link{DelayedArray}}.
-If \code{force=FALSE} and \code{placeholder} is already \code{NA}, \code{x} is directly returned.
 }
 \description{
 Delayed masking of missing values, based on replacement of placeholder values with \code{NA}.
 This allows missingness to be encoded in frameworks without the same concept of \code{NA} as R.
+}
+\details{
+If \code{\link{is.na}(placeholder)} is true for double-precision \code{x}, masking is performed for all values of \code{x} where \code{is.na} is true.
+This includes both NaNs and NAs; no attempt is made to distinguish between the NaN payloads.
+
+Currently, an error is raised for any integer \code{x} that produces non-missing values of -2^31 without a placeholder of \code{NA_integer_}.
+This is because R cannot distinguish the integer -2^31 from an integer-type NA.
 }
 \examples{
 original <- DelayedArray(matrix(rpois(40, lambda=2), ncol=5))
