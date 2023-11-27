@@ -1,42 +1,20 @@
-#' Stage a multi-dimensional array for upload
+#' Save a multi-dimensional array to disk
 #'
-#' Stage a high-dimensional array in preparation for upload to DataSetDB.
+#' Save a high-dimensional array to its on-disk representations.
 #'
-#' @param x An array, almost always integer or numeric, though logical and character matrices are also supported.
-#' Alternatively, a \linkS4class{DelayedArray} or any instance of a \linkS4class{Matrix} class.
-#' @param dir String containing the path to the staging directory.
-#' @param path String containing the relative path to a subdirectory inside the staging directory, in which \code{x} is to be saved.
-#' @param child Logical scalar indicating whether \code{x} is a child of a larger object.
+#' @param x An integer, numeric, logical or character array.
+#' Alternatively, any of the \linkS4class{denseMatrix} subclasses from the \pkg{Matrix} package.
+#' @param path String containing the path to a directory in which to save \code{x}.
+#' @param ... Further arguments, currently ignored.
 #' 
 #' @return
-#' \code{x} is saved into a single file at \code{file.path(dir, path)}, possibly after appending an arbitrary file extension. 
-#' A named list is returned, containing at least:
-#' \itemize{
-#' \item \code{$schema}, a string specifying the schema to use to validate the metadata.
-#' \item \code{path}, a string containing the path to the file inside the subdirectory, containing the assay contents.
-#' \item \code{is_child}, a logical scalar equal to the input \code{child}.
-#' }
-#'
-#' @details
-#' For dense arrays, we save the array as a dense matrix in a HDF5 file using methods from the \pkg{HDF5Array} package.
-#' For sparse matrices, we call \code{\link{writeSparseMatrix}} to save the data in the 10X sparse matrix format.
-#' Other representations may have more appropriate formats, which are supported by simply writing new methods for this generic.
-#' Note that specialized methods will usually require new schemas to validate any new metadata fields.
-#'
-#' If \code{x} itself is a child of a larger object, we suggest using the output \code{path} when referencing \code{x} from within the larger object's metadata.
-#' This is because \code{stageObject} methods may add more path components, file extensions, etc. to the input \code{path} when saving the object.
-#' As a result, the output \code{path} may not be the same as the input \code{path}.
+#' \code{x} is saved to \code{path} and \code{NULL} is invisibly returned.
 #'
 #' @seealso
-#' \code{\link{preserveDelayedOperations}}, to preserve the delayed'ness of a \linkS4class{DelayedMatrix} \code{x}.
-#'
-#' \code{\link{recycleHdf5Files}}, to re-use the existing file in a HDF5-backed \linkS4class{DelayedMatrix} \code{x}.
+#' \code{\link{readArray}}, to read the directory contents back into the R session.
 #'
 #' @author Aaron Lun
 #' @examples
-#' dir <- tempfile()
-#' dir.create(dir)
-#'
 #' mat <- array(rpois(10000, 10), c(50, 20, 10))
 #' dimnames(mat) <- list(
 #'    paste0("GENE_", seq_len(nrow(mat))),
@@ -44,14 +22,67 @@
 #'    NULL
 #' )
 #'
-#' path <- "whee"
-#' stageObject(mat, dir, path)
-#'
+#' dir <- tempfile()
+#' saveObject(mat, dir)
 #' list.files(dir)
 #'
-#' @name stageArray
-#' @importFrom alabaster.base stageObject
+#' @name saveArray
+#' @aliases 
+#' stageObject,array-method
+#' stageObject,Matrix-method
 NULL
+
+#' @import alabaster.base rhdf5
+.save_array <- function(x, path, ...) {
+    dir.create(path)
+    fpath <- file.path(path, "array.h5")
+    name <- "dense_array"
+
+    # This needs to be wrapped up as writeHDF5Array needs to
+    # take ownership of the file handle internally.
+    local({
+        fhandle <- H5Fcreate(fpath, "H5F_ACC_TRUNC")
+        on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
+
+        ghandle <- H5Gcreate(fhandle, name)
+        on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
+
+        h5_write_attribute(ghandle, "version", "1.0", scalar=TRUE)
+        h5_write_attribute(ghandle, "type", array_type(x), scalar=TRUE)
+        h5_write_attribute(ghandle, "transposed", 1L, scalar=TRUE)
+    })
+
+    transformed <- transformVectorForHdf5(x)
+    writeHDF5Array(transformed$transformed, filepath=fpath, name="dense_array/data")
+
+    # Reinitializing the handle for more downstream work.
+    fhandle <- H5Fopen(fpath, "H5F_ACC_RDWR")
+    on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
+    ghandle <- H5Gopen(fhandle, name)
+    on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
+
+    if (!is.null(transformed$placeholder)) {
+        dhandle <- H5Dopen(ghandle, "data")
+        on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
+        h5_write_attribute(dhandle, missingPlaceholderName, transformed$placeholder, scalar=TRUE)
+    }
+
+    save_names(ghandle, x, transpose=TRUE)
+    write(name, file=file.path(path, "OBJECT"))
+    invisible(NULL)
+}
+
+#' @export
+#' @rdname saveArray
+setMethod("saveObject", "array", .save_array)
+
+#' @export
+#' @rdname saveArray
+setMethod("saveObject", "denseMatrix", .save_array)
+
+##############################
+######### OLD STUFF ##########
+##############################
 
 #' @importFrom DelayedArray is_sparse
 #' @importFrom rhdf5 h5createFile 
@@ -111,7 +142,6 @@ NULL
 }
 
 #' @export
-#' @rdname stageArray
 setMethod("stageObject", "array", function(x, dir, path, child=FALSE) .stage_array(x, dir, path, child=child))
 
 #' @importFrom alabaster.base .stageObject
@@ -141,7 +171,6 @@ setMethod("stageObject", "array", function(x, dir, path, child=FALSE) .stage_arr
 }
 
 #' @export
-#' @rdname stageArray
 setMethod("stageObject", "DelayedArray", function(x, dir, path, child=FALSE) .stage_delayed(x, dir, path, child = child, fallback = .stage_array))
 
 #' @importFrom rhdf5 h5createFile h5createGroup
@@ -179,12 +208,10 @@ setMethod("stageObject", "DelayedArray", function(x, dir, path, child=FALSE) .st
 }
 
 #' @export
-#' @rdname stageArray
 #' @importClassesFrom Matrix Matrix
 setMethod("stageObject", "Matrix", function(x, dir, path, child=FALSE) .stage_any_matrix(x, dir, path, child=child))
 
 #' @export
-#' @rdname stageArray
 setMethod("stageObject", "DelayedMatrix", function(x, dir, path, child=FALSE) .stage_delayed(x, dir, path, child = child, fallback = .stage_any_matrix))
 
 .link_or_copy <- function(from, to) {
