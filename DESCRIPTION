@@ -24,6 +24,7 @@ Suggests:
     knitr,
     BiocStyle,
     chihaya
+LinkingTo: Rcpp
 VignetteBuilder: knitr
 RoxygenNote: 7.2.3
 biocViews:
