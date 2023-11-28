@@ -9,6 +9,8 @@ Description:
     This is a more portable alternative to serialization of such objects into RDS files.
     Each artifact is associated with metadata for further interpretation;
     downstream applications can enrich this metadata with context-specific properties.
+Depends:
+    alabaster.base
 Imports:
     methods,
     BiocGenerics,
@@ -17,8 +19,7 @@ Imports:
     SparseArray,
     rhdf5,
     HDF5Array,
-    Matrix,
-    alabaster.base
+    Matrix
 Suggests:
     testthat,
     knitr,
