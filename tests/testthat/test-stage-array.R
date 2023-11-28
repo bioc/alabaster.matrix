@@ -1,5 +1,5 @@
 # This tests the stageObject generic for arrays.
-# library(testthat); library(alabaster.matrix); source("test-save-array.R")
+# library(testthat); library(alabaster.matrix); source("test-stage-array.R")
 
 experiment <- "rnaseq"
 assay <- "counts"
@@ -27,11 +27,6 @@ test_that("stageObject works as expected for the default method", {
 
     # Checking that metadata save works.
     expect_error(alabaster.base::.writeMetadata(info, dir=dir), NA)
-
-    # Trying in the new world.
-    tmp <- tempfile()
-    saveObject(arr, tmp)
-    expect_identical(as.array(readObject(tmp)), arr)
 })
 
 test_that("stageObject works as expected for NA values", {
@@ -49,10 +44,6 @@ test_that("stageObject works as expected for NA values", {
         arr2 <- loadArray(info, project=dir)
         expect_identical(DelayedArray::type(arr2), "integer")
         expect_equal(arr, as.array(arr2))
-
-        tmp <- tempfile()
-        saveObject(arr, tmp)
-        expect_identical(as.array(readObject(tmp)), arr)
     }
 
     arr[1] <- NA
@@ -65,10 +56,6 @@ test_that("stageObject works as expected for NA values", {
         arr2 <- loadArray(info, project=dir)
         expect_identical(DelayedArray::type(arr2), "integer")
         expect_equal(arr, as.array(arr2))
-
-        tmp <- tempfile()
-        saveObject(arr, tmp)
-        expect_identical(as.array(readObject(tmp)), arr)
     }
 
     storage.mode(arr) <- "double"
@@ -84,99 +71,7 @@ test_that("stageObject works as expected for NA values", {
         arr2 <- loadArray(info, project=dir)
         expect_identical(DelayedArray::type(arr2), "double")
         expect_equal(arr, as.array(arr2))
-
-        tmp <- tempfile()
-        saveObject(arr, tmp)
-        expect_identical(as.array(readObject(tmp)), arr)
     }
-})
-
-test_that("saveObject type optimization works as expected", {
-    # Small unsigned integers
-    mat <- matrix(sample(255, 1000, replace=TRUE), 40, 25)
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    storage.mode(mat) <- "integer"
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    mat[100] <- NA
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    # Small signed integers
-    mat <- matrix(sample(255, 1000, replace=TRUE) - 128, 40, 25)
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    storage.mode(mat) <- "integer"
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    mat[100] <- NA
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    # Large integers
-    mat <- trunc(matrix(runif(1000, -1e6, 1e6), 40, 25))
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    storage.mode(mat) <- "integer"
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    mat[100] <- NA
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    # Other floating-point values.
-    mat <- matrix(rnorm(1000, -1e6, 1e6), 40, 25)
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    mat[100] <- NA
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    mat[101] <- NaN
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    # Logical values.
-    mat <- matrix(rbinom(1000, 1, 0.5) == 1, 40, 25)
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    mat[100] <- NA
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    # String values.
-    mat <- matrix(sample(LETTERS, 1000, replace=TRUE), 40, 25)
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
-
-    mat[100] <- NA
-    tmp <- tempfile()
-    saveObject(mat, tmp)
-    expect_identical(as.matrix(readObject(tmp)), mat)
 })
 
 test_that("stageObject works as expected without dimnames", {
@@ -192,10 +87,6 @@ test_that("stageObject works as expected without dimnames", {
     expect_equal(sum(arr2), sum(arr))
     expect_null(rownames(arr2))
     expect_null(colnames(arr2))
-
-    tmp <- tempfile()
-    saveObject(arr, tmp)
-    expect_identical(as.array(readObject(tmp)), arr)
 })
 
 test_that("stageObject works with DelayedArrays", {
@@ -356,20 +247,6 @@ test_that("reading arrays work with non-default NA placeholders", {
         ref <- as.matrix(x)
         ref[ref==0L] <- NA
         expect_identical(ref, as.matrix(arr2))
-
-        # Trying in the new world.
-        tmp <- tempfile()
-        saveObject(x, tmp)
-        local({ 
-            fhandle <- H5Fopen(file.path(tmp, "array.h5"))
-            on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
-            ghandle <- H5Gopen(fhandle, "dense_array")
-            on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
-            dhandle <- H5Dopen(ghandle, "data")
-            on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
-            alabaster.base::h5_write_attribute(dhandle, "missing-value-placeholder", 0L, scalar=TRUE)
-        })
-        expect_identical(ref, as.matrix(readObject(tmp)))
     }
 
     # Sparse case.

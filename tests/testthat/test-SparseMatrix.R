@@ -159,3 +159,47 @@ test_that("writing to a sparse matrix works with different integer types", {
         expect_identical(as.matrix(readObject(tmp)), core)
     }
 })
+
+test_that("saving sparse matrices works with dimnames", {
+    x <- rsparsematrix(100, 20, 0.5)
+    rownames(x) <- paste0("GENE_", seq_len(nrow(x)))
+    colnames(x) <- head(LETTERS, 20)
+
+    tmp <- tempfile()
+    saveObject(x, tmp)
+    roundtrip <- readObject(tmp)
+    expect_identical(as.matrix(roundtrip), as.matrix(x))
+})
+
+test_that("saveObject diverts correctly with pristine sparse DelayedArrays", {
+    x <- DelayedArray(Matrix::rsparsematrix(100, 20, 0.2))
+    expect_true(isPristine(x))
+
+    tmp <- tempfile()
+    saveObject(x, tmp)
+    expect_identical(as(readObject(tmp), "dgCMatrix"), x@seed)
+})
+
+test_that("reading sparse arrays work with non-default NA placeholders", {
+    x <- rsparsematrix(100, 20, 0.5)
+    first <- x@x[1]
+
+    dir <- tempfile()
+    saveObject(x, dir)
+
+    library(rhdf5)
+    local({ 
+        fhandle <- H5Fopen(file.path(dir, "matrix.h5"))
+        on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
+        ghandle <- H5Gopen(fhandle, "compressed_sparse_matrix")
+        on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
+        dhandle <- H5Dopen(ghandle, "data")
+        on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
+        alabaster.base::h5_write_attribute(dhandle, "missing-value-placeholder", first, scalar=TRUE)
+    })
+
+    arr2 <- readObject(dir)
+    ref <- as.matrix(x)
+    ref[ref==first] <- NA
+    expect_identical(ref, as.matrix(arr2))
+})
