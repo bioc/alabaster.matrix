@@ -44,7 +44,7 @@ readArray <- function(path, array.file.backed=TRUE, ...) {
         on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
         placeholder <- h5_read_attribute(dhandle, "missing-value-placeholder", check=TRUE, default=NULL)
 
-        ndims <- length(H5Sget_simple_extent_dims(H5Dget_space(dhandle)))
+        ndims <- H5Sget_simple_extent_dims(H5Dget_space(dhandle))$rank
         names <- load_names(ghandle, ndims)
 
         list(type=type, names=names, transposed=(transposed != 0L), placeholder=placeholder)

@@ -19,6 +19,14 @@ test_that("staging of arrays within DFs works correctly", {
     roundtrip$Y <- as.matrix(roundtrip$Y)
     roundtrip$Z <- as.matrix(roundtrip$Z)
     expect_equal(roundtrip, input)
+
+    # Works in the new world.
+    tmp <- tempfile()
+    saveObject(input, tmp)
+    roundtrip <- readObject(tmp)
+    roundtrip$Y <- as.matrix(roundtrip$Y)
+    roundtrip$Z <- as.matrix(roundtrip$Z)
+    expect_identical(roundtrip, input)
 })
 
 test_that("staging of arrays continues to work with character matrices", {
@@ -36,5 +44,12 @@ test_that("staging of arrays continues to work with character matrices", {
     roundtrip$Y <- as.matrix(roundtrip$Y)
     roundtrip$Z <- as.matrix(roundtrip$Z)
     expect_equal(roundtrip, input)
-})
 
+    # Works in the new world.
+    tmp <- tempfile()
+    saveObject(input, tmp)
+    roundtrip <- readObject(tmp)
+    roundtrip$Y <- as.matrix(roundtrip$Y)
+    roundtrip$Z <- as.matrix(roundtrip$Z)
+    expect_identical(roundtrip, input)
+})
