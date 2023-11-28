@@ -4,7 +4,7 @@ author:
 - name: Aaron Lun
   email: infinite.monkeys.with.keyboards@gmail.com
 package: alabaster.matrix
-date: "Revised: September 22, 2021"
+date: "Revised: November 28, 2023"
 output:
   BiocStyle::html_document
 vignette: >
@@ -26,7 +26,7 @@ Check out the `r Githubpkg("ArtifactDB/alabaster.base")` for more details on the
 
 # Quick start
 
-Given an array-like object, we can use `stageObject()` to save it inside a staging directory:
+Given an array-like object, we can use `saveObject()` to save it inside a staging directory:
 
 ```{r}
 library(Matrix)
@@ -34,21 +34,16 @@ y <- rsparsematrix(1000, 100, density=0.05)
 
 library(alabaster.matrix)
 tmp <- tempfile()
-dir.create(tmp)
-meta <- stageObject(y, tmp, "my_sparse_matrix")
-
-library(alabaster.base)
-.writeMetadata(meta, tmp)
+saveObject(y, tmp)
 
 list.files(tmp, recursive=TRUE)
 ```
 
 We then load it back into our R session with `loadObject()`.
-This creates a HDF5-backed `DelayedArray` that can be easily coerced into the desired format, e.g., a `dgCMatrix`.
+This creates a HDF5-backed S4 array that can be easily coerced into the desired format, e.g., a `dgCMatrix`.
 
 ```{r}
-meta <- acquireMetadata(tmp, "my_sparse_matrix/matrix.h5")
-roundtrip <- loadObject(meta, tmp)
+roundtrip <- readObject(tmp)
 class(roundtrip)
 ```
 
@@ -56,10 +51,13 @@ This process is supported for all base arrays, `r CRANpkg("Matrix")` objects and
 
 # Saving delayed operations
 
+🚧🚧🚧 Oops. Yet to migrate the delayed operations to the new `saveObject`/`readObject` world - stay tuned. 🚧🚧🚧
+
+<!--
 For `DelayedArray`s, we may instead choose to save the delayed operations themselves to file, using the `r Githubpkg("LTLA/chihaya")` package.
 This creates a HDF5 file following the [**chihaya**](https://ltla.github.io/chihaya) format, containing the delayed operations rather than the results of their evaluation.
 
-```{r}
+```{r, eval=FALSE}
 library(DelayedArray)
 y <- DelayedArray(rsparsematrix(1000, 100, 0.05))
 y <- log1p(abs(y) / 1:100) # adding some delayed ops.
@@ -75,6 +73,7 @@ class(roundtrip)
 
 However, it is probably best to avoid preserving delayed operations for file-backed `DelayedArray`s if you want the artifacts to be re-usable on different filesystems.
 For example, `HDF5Array`s will be saved with a reference to an absolute file path, which will not be portable.
+-->
 
 # Session information {-}
 
