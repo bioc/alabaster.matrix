@@ -31,6 +31,8 @@
 #' readArray(dir)
 #' 
 #' @export
+#' @aliases
+#' loadArray
 #' @importFrom HDF5Array HDF5Array
 #' @importFrom DelayedArray type<-
 readArray <- function(path, array.output.type=NULL, ...) {

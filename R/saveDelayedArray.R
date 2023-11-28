@@ -21,6 +21,9 @@
 #' list.files(dir)
 #'
 #' @name saveDelayedArray
+#' @aliases 
+#' stageObject,DelayedArray-method
+#' stageObject,DelayedMatrix-method
 NULL
 
 #' @export

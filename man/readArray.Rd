@@ -2,6 +2,7 @@
 % Please edit documentation in R/readArray.R
 \name{readArray}
 \alias{readArray}
+\alias{loadArray}
 \title{Read a dense array from disk}
 \usage{
 readArray(path, array.output.type = NULL, ...)

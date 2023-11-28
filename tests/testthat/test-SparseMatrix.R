@@ -148,7 +148,7 @@ test_that("fallback to large integer types for indices works correctly", {
         x[100000,20] <- 99 # making sure there's a value at the bottom-right so that we check the index correctly.
 
         if (i == 2) {
-            x <- t(x)
+            x <- Matrix::t(x)
             x <- as(x, "RsparseMatrix")
         } else if (i == 3) {
             x <- as(x, "SVT_SparseMatrix")

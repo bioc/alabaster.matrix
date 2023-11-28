@@ -2,6 +2,8 @@
 % Please edit documentation in R/saveDelayedArray.R
 \name{saveDelayedArray}
 \alias{saveDelayedArray}
+\alias{stageObject,DelayedArray-method}
+\alias{stageObject,DelayedMatrix-method}
 \alias{saveObject,DelayedArray-method}
 \title{Save DelayedArrays to disk}
 \usage{
