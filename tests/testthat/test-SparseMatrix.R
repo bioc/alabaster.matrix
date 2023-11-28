@@ -22,7 +22,7 @@ test_that("writing to a sparse matrix works as expected for numeric data", {
 
             tmp <- tempfile(fileext=".h5")
             saveObject(x, tmp)
-            roundtrip <- readSparseMatrix(tmp)
+            roundtrip <- readObject(tmp)
             expect_identical(as.matrix(roundtrip), as.matrix(x))
         }
     }
@@ -46,7 +46,7 @@ test_that("writing to a sparse matrix works as expected for logical data", {
 
             tmp <- tempfile(fileext=".h5")
             saveObject(x, tmp)
-            roundtrip <- readSparseMatrix(tmp)
+            roundtrip <- readObject(tmp)
             expect_identical(as.matrix(roundtrip), as.matrix(x))
         }
     }
@@ -69,7 +69,7 @@ test_that("writing to a sparse matrix works as expected for integer data", {
 
             tmp <- tempfile(fileext=".h5")
             saveObject(x, tmp)
-            roundtrip <- readSparseMatrix(tmp)
+            roundtrip <- readObject(tmp)
             expect_identical(as.matrix(roundtrip), as.matrix(x))
         }
     }
@@ -83,7 +83,7 @@ test_that("depositing a large sparseMatrix vector works correctly", {
 
     tmp <- tempfile(fileext=".h5")
     saveObject(x, tmp)
-    roundtrip <- readSparseMatrix(tmp)
+    roundtrip <- readObject(tmp)
     expect_identical(as(roundtrip, 'dgCMatrix'), x)
 
     # Now injecting an NA.
@@ -111,7 +111,7 @@ test_that("fallback to large integer types for indices works correctly", {
 
         tmp <- tempfile(fileext=".h5")
         saveObject(x, tmp)
-        roundtrip <- readSparseMatrix(tmp)
+        roundtrip <- readObject(tmp)
         expect_identical(as.matrix(roundtrip), as.matrix(x))
     }
 })
@@ -133,12 +133,12 @@ test_that("writing to a sparse matrix works with different integer types", {
         tmp <- tempfile()
         y <- as(core, "dgCMatrix")
         saveObject(y, tmp)
-        expect_identical(as.matrix(readSparseMatrix(tmp)), core)
+        expect_identical(as.matrix(readObject(tmp)), core)
 
         core[chosen] <- core[chosen] - 2^(bits-1)
         y <- as(core, "dgCMatrix")
         tmp <- tempfile()
         saveObject(y, tmp)
-        expect_identical(as.matrix(readSparseMatrix(tmp)), core)
+        expect_identical(as.matrix(readObject(tmp)), core)
     }
 })
