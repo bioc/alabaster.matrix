@@ -15,7 +15,13 @@ dimnames(arr) <- list(
 test_that("saveObject works as expected", {
     tmp <- tempfile()
     saveObject(arr, tmp)
-    expect_identical(as.array(readObject(tmp)), arr)
+    roundtrip <- readObject(tmp)
+    expect_identical(BiocGenerics::path(roundtrip), tmp)
+    expect_identical(as.array(roundtrip), arr)
+
+    # Reading works with options to load it into memory.
+    roundtrip2 <- readObject(tmp, array.output.type="array")
+    expect_identical(roundtrip2, arr)
 
     # Works when it's officially integer.
     copy <- arr

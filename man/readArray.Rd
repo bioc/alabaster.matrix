@@ -4,20 +4,25 @@
 \alias{readArray}
 \title{Read a dense array from disk}
 \usage{
-readArray(path, array.file.backed = TRUE, ...)
+readArray(path, array.output.type = NULL, ...)
 }
 \arguments{
 \item{path}{String containing a path to a directory, itself created by the \code{\link{saveObject}} method for a dense array.}
 
-\item{array.file.backed}{Logical scalar indicating whether to return a file-backed S4 array class, or an ordinary R array in memory.}
+\item{array.output.type}{String specifying the output type for this function.
+This can be \code{"array"} or \code{"ReloadedArray"} (the default).}
 
 \item{...}{Further arguments, ignored.}
 }
 \value{
-A multi-dimensional array-like object, either a \linkS4class{DelayedArray} or an ordinary R array.
+A multi-dimensional array-like object.
 }
 \description{
 Read a dense high-dimensional array from its on-disk representation.
+}
+\details{
+By default, a file-backed \linkS4class{ReloadedArray} is returned to save memory and to preserve the provenance of the object.
+Users can set \code{array.output.type="array"} to force \code{readArray} to load all data into memory and return an ordinary R array instead.
 }
 \examples{
 arr <- array(rpois(10000, 10), c(50, 20, 10))

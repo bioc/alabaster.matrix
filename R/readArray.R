@@ -3,10 +3,15 @@
 #' Read a dense high-dimensional array from its on-disk representation.
 #'
 #' @param path String containing a path to a directory, itself created by the \code{\link{saveObject}} method for a dense array.
-#' @param array.file.backed Logical scalar indicating whether to return a file-backed S4 array class, or an ordinary R array in memory.
+#' @param array.output.type String specifying the output type for this function.
+#' This can be \code{"array"} or \code{"ReloadedArray"} (the default).
 #' @param ... Further arguments, ignored.
 #' 
-#' @return A multi-dimensional array-like object, either a \linkS4class{DelayedArray} or an ordinary R array.
+#' @return A multi-dimensional array-like object.
+#'
+#' @details
+#' By default, a file-backed \linkS4class{ReloadedArray} is returned to save memory and to preserve the provenance of the object.
+#' Users can set \code{array.output.type="array"} to force \code{readArray} to load all data into memory and return an ordinary R array instead.
 #'
 #' @seealso
 #' \code{"\link{saveObject,array-method}"}, to create the directory and its contents.
@@ -28,7 +33,7 @@
 #' @export
 #' @importFrom HDF5Array HDF5Array
 #' @importFrom DelayedArray type<-
-readArray <- function(path, array.file.backed=TRUE, ...) {
+readArray <- function(path, array.output.type=NULL, ...) {
     fpath <- file.path(path, "array.h5")
 
     details <- local({
@@ -67,11 +72,15 @@ readArray <- function(path, array.file.backed=TRUE, ...) {
     }
     type(out) <- from_array_type(details$type)
 
-    if (!array.file.backed) {
-        return(as.array(out))
+    if (is.null(array.output.type)) {
+        array.output.type <- "ReloadedArray"
     } else {
-        return(DelayedArray(out))
+        array.output.type <- match.arg(array.output.type, c("array", "ReloadedArray"))
     }
+    if (array.output.type == "array") {
+        return(as.array(out))
+    }
+    ReloadedArray(path=path, seed=out)
 }
 
 ##############################

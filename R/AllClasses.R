@@ -13,3 +13,14 @@ setClass("AmalgamatedArray", contains="DelayedArray", slots=c(seed = "Amalgamate
 #' @export
 #' @importClassesFrom DelayedArray DelayedMatrix
 setClass("AmalgamatedMatrix", contains=c("AmalgamatedArray", "DelayedMatrix"))
+
+#' @export
+setClass("ReloadedArraySeed", contains="WrapperArraySeed", slots=c(path="character"))
+
+#' @export
+#' @importClassesFrom DelayedArray DelayedArray
+setClass("ReloadedArray", contains="DelayedArray", slots=c(seed = "ReloadedArraySeed"))
+
+#' @export
+#' @importClassesFrom DelayedArray DelayedMatrix
+setClass("ReloadedMatrix", contains=c("ReloadedArray", "DelayedMatrix"))

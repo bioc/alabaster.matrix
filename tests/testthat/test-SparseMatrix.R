@@ -5,6 +5,36 @@ library(Matrix)
 library(SparseArray)
 library(DelayedArray)
 
+test_that("reading a sparse matrix works with different output types", {
+    x <- rsparsematrix(109, 297, 0.5)
+
+    tmp <- tempfile()
+    saveObject(x, tmp)
+    roundtrip <- readObject(tmp)
+    expect_identical(BiocGenerics::path(roundtrip), tmp)
+    expect_identical(as(roundtrip, "dgCMatrix"), x)
+
+    # Reading works with options to load it into memory.
+    roundtrip2 <- readObject(tmp, sparsematrix.output.type="CsparseMatrix")
+    expect_identical(roundtrip2, x)
+
+    # Trying with a logical matrix.
+    x <- rsparsematrix(109, 297, 0.5) > 0
+    tmp <- tempfile()
+    saveObject(x, tmp)
+    roundtrip2 <- readObject(tmp, sparsematrix.output.type="CsparseMatrix")
+    expect_identical(as.matrix(roundtrip2), as.matrix(x))
+
+    # Trying with an integer matrix.
+    x <- rsparsematrix(109, 297, 0.5) * 10
+    x <- as(x, "SVT_SparseMatrix")
+    type(x) <- "integer"
+    tmp <- tempfile()
+    saveObject(x, tmp)
+    expect_warning(roundtrip2 <- readObject(tmp, sparsematrix.output.type="CsparseMatrix"), "cannot faithfully")
+    expect_identical(roundtrip2, as(x, "dgCMatrix"))
+})
+
 test_that("writing to a sparse matrix works as expected for numeric data", {
     for (i in 1:4) {
         for (miss in c(TRUE, FALSE)) {
