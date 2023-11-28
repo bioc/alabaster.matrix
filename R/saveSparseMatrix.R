@@ -191,7 +191,7 @@ setMethod("h5_write_sparse_matrix", "ANY", function(x, handle, details, ...) {
     on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
 
     ihandle <- h5_create_vector(handle, "indices", N, type=.choose_itype(ilimit), chunks=chunks)
-    on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
+    on.exit(H5Dclose(ihandle), add=TRUE, after=FALSE)
 
     shandle <- H5Screate_simple(N)
     on.exit(H5Sclose(shandle), add=TRUE, after=FALSE)
@@ -218,9 +218,13 @@ setMethod("h5_write_sparse_matrix", "ANY", function(x, handle, details, ...) {
         secondary <- secondary[o]
         v <- v[o]
 
+        if (!is.null(details$placeholder)) {
+            v[is.missing(v)] <- details$placeholder
+        }
+
         H5Sselect_hyperslab(shandle, "H5S_SELECT_SET", start=start, count=length(v))
         H5Dwrite(dhandle, v, h5spaceFile=shandle)
-        H5Dwrite(ihandle, secondary, h5spaceFile=shandle)
+        H5Dwrite(ihandle, secondary - 1L, h5spaceFile=shandle)
         pointers <- c(pointers, list(tabulate(primary, ndim)))
         start <- start + length(v)
     }

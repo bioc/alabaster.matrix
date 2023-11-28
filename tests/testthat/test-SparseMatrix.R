@@ -1,11 +1,12 @@
 # This tests the sparse readers/writers.
-# library(testthat); library(alabaster.matrix); source("test-SparseMatrix.R")
+# library(testthat); library(alabaster.matrix); source("setup.R"); source("test-SparseMatrix.R")
 
 library(Matrix)
 library(SparseArray)
+library(DelayedArray)
 
 test_that("writing to a sparse matrix works as expected for numeric data", {
-    for (i in 1:3) {
+    for (i in 1:4) {
         for (miss in c(TRUE, FALSE)) {
             x <- rsparsematrix(100, 20, 0.5)
             if (miss) {
@@ -23,13 +24,13 @@ test_that("writing to a sparse matrix works as expected for numeric data", {
             tmp <- tempfile(fileext=".h5")
             saveObject(x, tmp)
             roundtrip <- readObject(tmp)
-            expect_identical(as.matrix(roundtrip), as.matrix(x))
+            expect_identical_without_names(as.matrix(roundtrip), as.matrix(x))
         }
     }
 })
 
 test_that("writing to a sparse matrix works as expected for logical data", {
-    for (i in 1:3) {
+    for (i in 1:4) {
         for (miss in c(TRUE, FALSE)) {
             x <- rsparsematrix(100, 20, 0.5) > 0
             if (miss) {
@@ -47,13 +48,13 @@ test_that("writing to a sparse matrix works as expected for logical data", {
             tmp <- tempfile(fileext=".h5")
             saveObject(x, tmp)
             roundtrip <- readObject(tmp)
-            expect_identical(as.matrix(roundtrip), as.matrix(x))
+            expect_identical_without_names(as.matrix(roundtrip), as.matrix(x))
         }
     }
 })
 
 test_that("writing to a sparse matrix works as expected for integer data", {
-    for (i in 1:1) {
+    for (i in 1:2) {
         for (miss in c(TRUE, FALSE)) {
             x <- round(rsparsematrix(100, 20, 0.5) * 10)
             if (miss) {
@@ -62,15 +63,15 @@ test_that("writing to a sparse matrix works as expected for integer data", {
 
             if (i == 1) {
                 x <- as(x, "SVT_SparseMatrix")
-                type(x) <- "integer"
             } else if (i == 2) {
                 x <- DelayedArray(x) * 1L # force use of the block method.
             }
+            type(x) <- "integer"
 
             tmp <- tempfile(fileext=".h5")
             saveObject(x, tmp)
             roundtrip <- readObject(tmp)
-            expect_identical(as.matrix(roundtrip), as.matrix(x))
+            expect_identical_without_names(as.matrix(roundtrip), as.matrix(x))
         }
     }
 })
@@ -86,7 +87,7 @@ test_that("depositing a large sparseMatrix vector works correctly", {
     roundtrip <- readObject(tmp)
     expect_identical(as(roundtrip, 'dgCMatrix'), x)
 
-    # Now injecting an NA.
+    # Now injecting an NA, which should force it to use chunk-wise processing.
     x@x[1] <- NA
 
     tmp <- tempfile(fileext=".h5")
@@ -95,8 +96,24 @@ test_that("depositing a large sparseMatrix vector works correctly", {
 #    expect_identical(as(roundtrip, 'dgCMatrix'), x) # TODO: bug in HDF5Array
 })
 
+test_that("depositing small chunks works correctly", {
+    x <- rsparsematrix(1000, 500, 0.2)
+    y <- DelayedArray(x) * 1 # force block processing.
+
+    tmp <- tempfile(fileext=".h5")
+    local({
+        old <- getAutoBlockSize()
+        setAutoBlockSize(20000)
+        on.exit(setAutoBlockSize(old))
+        saveObject(x, tmp)
+    })
+
+    roundtrip <- readObject(tmp)
+    expect_identical(as(roundtrip, 'dgCMatrix'), x)
+})
+
 test_that("fallback to large integer types for indices works correctly", {
-    for (i in 1:3) {
+    for (i in 1:4) {
         x <- rsparsematrix(100000, 20, 0.001)
         x[100000,20] <- 99 # making sure there's a value at the bottom-right so that we check the index correctly.
 
@@ -112,7 +129,7 @@ test_that("fallback to large integer types for indices works correctly", {
         tmp <- tempfile(fileext=".h5")
         saveObject(x, tmp)
         roundtrip <- readObject(tmp)
-        expect_identical(as.matrix(roundtrip), as.matrix(x))
+        expect_identical_without_names(as.matrix(roundtrip), as.matrix(x))
     }
 })
 
