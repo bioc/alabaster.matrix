@@ -61,14 +61,7 @@ NULL
     if (!is.null(optimized$placeholder)) {
         dhandle <- H5Dopen(ghandle, "data")
         on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
-
-        # Patch until rhdf5::H5Awrite is fixed.
-        atype <- optimized$type
-        if (type(x) == "character") {
-            atype <- NULL
-        }
-
-        h5_write_attribute(dhandle, missingPlaceholderName, optimized$placeholder, type=atype, scalar=TRUE)
+        h5_write_attribute(dhandle, missingPlaceholderName, optimized$placeholder, type=optimized$type, scalar=TRUE)
     }
 
     save_names(ghandle, x, transpose=TRUE)
