@@ -96,7 +96,8 @@ h5_write_array <- function(handle, name, x, type, placeholder, extract.native=NU
 
     phandle <- H5Pcreate("H5P_DATASET_CREATE")
     on.exit(H5Pclose(phandle), add=TRUE, after=FALSE)
-    H5Pset_fill_time(phandle, "H5D_FILL_TIME_ALLOC")
+    H5Pset_fill_time(phandle, "H5D_FILL_TIME_NEVER")
+    H5Pset_obj_track_times(phandle, FALSE)
 
     if (!is.null(compress) && compress > 0 && length(x)) {
         H5Pset_deflate(phandle, level=compress)
