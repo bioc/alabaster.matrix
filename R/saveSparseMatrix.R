@@ -49,7 +49,7 @@ NULL
     }
 
     save_names(ghandle, x)
-    write(name, file=file.path(path, "OBJECT"))
+    saveObjectFile(path, name, list(compressed_sparse_matrix=list(version="1.0")))
     invisible(NULL)
 }
 

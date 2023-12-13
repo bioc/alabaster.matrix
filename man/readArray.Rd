@@ -5,10 +5,12 @@
 \alias{loadArray}
 \title{Read a dense array from disk}
 \usage{
-readArray(path, array.output.type = NULL, ...)
+readArray(path, metadata, array.output.type = NULL, ...)
 }
 \arguments{
 \item{path}{String containing a path to a directory, itself created by the \code{\link{saveObject}} method for a dense array.}
+
+\item{metadata}{Named list of metadata for this object, see \code{\link{readObject}} for more details.}
 
 \item{array.output.type}{String specifying the output type for this function.
 This can be \code{"array"} or \code{"ReloadedArray"} (the default).}
@@ -20,6 +22,7 @@ A multi-dimensional array-like object.
 }
 \description{
 Read a dense high-dimensional array from its on-disk representation.
+This is usually not directly called by users, but is instead called by dispatch in \code{\link{readObject}}.
 }
 \details{
 By default, a file-backed \linkS4class{ReloadedArray} is returned to save memory and to preserve the provenance of the object.
@@ -35,7 +38,7 @@ dimnames(arr) <- list(
 
 dir <- tempfile()
 saveObject(arr, dir)
-readArray(dir)
+readObject(dir)
 
 }
 \seealso{

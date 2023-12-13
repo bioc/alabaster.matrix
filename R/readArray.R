@@ -1,8 +1,10 @@
 #' Read a dense array from disk
 #'
 #' Read a dense high-dimensional array from its on-disk representation.
+#' This is usually not directly called by users, but is instead called by dispatch in \code{\link{readObject}}.
 #'
 #' @param path String containing a path to a directory, itself created by the \code{\link{saveObject}} method for a dense array.
+#' @param metadata Named list of metadata for this object, see \code{\link{readObject}} for more details.
 #' @param array.output.type String specifying the output type for this function.
 #' This can be \code{"array"} or \code{"ReloadedArray"} (the default).
 #' @param ... Further arguments, ignored.
@@ -28,14 +30,14 @@
 #'
 #' dir <- tempfile()
 #' saveObject(arr, dir)
-#' readArray(dir)
+#' readObject(dir)
 #' 
 #' @export
 #' @aliases
 #' loadArray
 #' @importFrom HDF5Array HDF5Array
 #' @importFrom DelayedArray type<-
-readArray <- function(path, array.output.type=NULL, ...) {
+readArray <- function(path, metadata, array.output.type=NULL, ...) {
     fpath <- file.path(path, "array.h5")
 
     details <- local({

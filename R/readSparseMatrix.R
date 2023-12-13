@@ -1,8 +1,10 @@
 #' Read a sparse matrix from disk
 #'
 #' Read a sparse matrix from its on-disk representation.
+#' This is usually not directly called by users, but is instead called by dispatch in \code{\link{readObject}}.
 #'
 #' @param path String containing a path to a directory, itself created by the \code{\link{saveObject}} method for a spars matrix.
+#' @param metadata Named list of metadata for this object, see \code{\link{readObject}} for more details.
 #' @param sparsematrix.output.type String specifying the output type for this function.
 #' This can be \code{"CsparseMatrix"}, \code{"SVT_SparseMatrix"} or \code{"ReloadedArray"} (the default).
 #' @param ... Further arguments, ignored.
@@ -23,12 +25,12 @@
 #' rownames(mat) <- paste0("GENE_", seq_len(nrow(mat)))
 #' dir <- tempfile()
 #' saveObject(mat, dir)
-#' readSparseMatrix(dir)
+#' readObject(dir)
 #' 
 #' @export
 #' @importFrom HDF5Array H5SparseMatrixSeed
 #' @importFrom DelayedArray type<-
-readSparseMatrix <- function(path, sparsematrix.output.type=NULL, ...) {
+readSparseMatrix <- function(path, metadata, sparsematrix.output.type=NULL, ...) {
     fpath <- file.path(path, "matrix.h5")
     name <- "compressed_sparse_matrix"
 

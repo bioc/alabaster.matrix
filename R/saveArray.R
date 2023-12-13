@@ -65,7 +65,7 @@ NULL
     }
 
     save_names(ghandle, x, transpose=TRUE)
-    write(name, file=file.path(path, "OBJECT"))
+    saveObjectFile(path, name, list(dense_array=list(version="1.0")))
     invisible(NULL)
 }
 
