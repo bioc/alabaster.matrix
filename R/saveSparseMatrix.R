@@ -138,6 +138,8 @@ setMethod("h5_write_sparse_matrix", "SVT_SparseMatrix", function(x, handle, deta
 
     shandle <- H5Screate_simple(N)
     on.exit(H5Sclose(shandle), add=TRUE, after=FALSE)
+    mhandle <- H5Screate_simple(1)
+    on.exit(H5Sclose(mhandle), add=TRUE, after=FALSE)
 
     start <- 1L
     cached <- 0
@@ -152,18 +154,20 @@ setMethod("h5_write_sparse_matrix", "SVT_SparseMatrix", function(x, handle, deta
             targets <- x@SVT[(last.cleared + 1L):i]
             all.i <- unlist(lapply(targets, function(y) y[[1]]))
             all.d <- unlist(lapply(targets, function(y) y[[2]]))
+            stopifnot(cached == length(all.d))
 
             if (!is.null(details$placeholder)) {
                 all.d[is.missing(all.d)] <- details$placeholder
             }
 
             H5Sselect_hyperslab(shandle, "H5S_SELECT_SET", start=start, count=cached)
-            H5Dwrite(dhandle, all.d, h5spaceFile=shandle)
-            H5Dwrite(ihandle, all.i, h5spaceFile=shandle)
+            H5Sset_extent_simple(mhandle, cached)
+            H5Dwrite(dhandle, all.d, h5spaceMem=mhandle, h5spaceFile=shandle)
+            H5Dwrite(ihandle, all.i, h5spaceMem=mhandle, h5spaceFile=shandle)
 
             last.cleared <- i
-            cached <- 0
             start <- start + cached
+            cached <- 0
         }
     }
 
@@ -194,6 +198,8 @@ setMethod("h5_write_sparse_matrix", "ANY", function(x, handle, details, ...) {
 
     shandle <- H5Screate_simple(N)
     on.exit(H5Sclose(shandle), add=TRUE, after=FALSE)
+    mhandle <- H5Screate_simple(1)
+    on.exit(H5Sclose(mhandle), add=TRUE, after=FALSE)
 
     start <- 1L
     pointers <- list(0)
@@ -222,8 +228,9 @@ setMethod("h5_write_sparse_matrix", "ANY", function(x, handle, details, ...) {
         }
 
         H5Sselect_hyperslab(shandle, "H5S_SELECT_SET", start=start, count=length(v))
-        H5Dwrite(dhandle, v, h5spaceFile=shandle)
-        H5Dwrite(ihandle, secondary - 1L, h5spaceFile=shandle)
+        H5Sset_extent_simple(mhandle, length(v))
+        H5Dwrite(dhandle, v, h5spaceMem=mhandle, h5spaceFile=shandle)
+        H5Dwrite(ihandle, secondary - 1L, h5spaceMem=mhandle, h5spaceFile=shandle)
         pointers <- c(pointers, list(tabulate(primary, ndim)))
         start <- start + length(v)
     }

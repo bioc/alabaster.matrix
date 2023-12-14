@@ -128,14 +128,30 @@ test_that("depositing a large sparseMatrix vector works correctly", {
 
 test_that("depositing small chunks works correctly", {
     x <- rsparsematrix(1000, 500, 0.2)
+
+    # For DelayedArrays:
     y <- DelayedArray(x) * 1 # force block processing.
 
-    tmp <- tempfile(fileext=".h5")
+    tmp <- tempfile()
     local({
         old <- getAutoBlockSize()
-        setAutoBlockSize(20000)
+        setAutoBlockSize(2000)
         on.exit(setAutoBlockSize(old))
-        saveObject(x, tmp)
+        saveObject(y, tmp)
+    })
+
+    roundtrip <- readObject(tmp)
+    expect_identical(as(roundtrip, 'dgCMatrix'), x)
+
+    # For SVT_SparseMatrix objects.
+    y <- as(x, "SVT_SparseMatrix")
+
+    tmp <- tempfile()
+    local({
+        old <- getAutoBlockSize()
+        setAutoBlockSize(2000)
+        on.exit(setAutoBlockSize(old))
+        saveObject(y, tmp)
     })
 
     roundtrip <- readObject(tmp)
