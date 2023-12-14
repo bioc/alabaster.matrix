@@ -206,6 +206,41 @@ test_that("writing to a sparse matrix works with different integer types", {
     }
 })
 
+test_that("writing a DelayedMatrixworks with row-major storage", {
+    xc <- rsparsematrix(100, 20, 0.5)
+    core <- as.matrix(xc)
+
+    # Regular:
+    tmp <- tempfile()
+    saveObject(xc, tmp)
+    expect_identical(rhdf5::h5readAttributes(file.path(tmp, "matrix.h5"), "compressed_sparse_matrix")$layout, "CSC")
+    expect_identical(unname(as.matrix(readObject(tmp))), core)
+
+    # Saving as CSC based on chunkdims:
+    setClass("TestColMatrix", contains="dgCMatrix")
+    setMethod("chunkdim", "TestColMatrix", function(x) c(nrow(x), 1L))
+    y <- as(xc, "TestColMatrix")
+    y <- DelayedArray(y) * 1 # force the use of block processing.
+
+    tmp <- tempfile()
+    saveObject(y, tmp)
+    expect_identical(rhdf5::h5readAttributes(file.path(tmp, "matrix.h5"), "compressed_sparse_matrix")$layout, "CSC")
+    expect_identical(as.matrix(readObject(tmp)), core)
+
+    # Saving as CSR:
+    xr <- as(xc, "RsparseMatrix")
+
+    setClass("TestRowMatrix", contains="dgRMatrix")
+    setMethod("chunkdim", "TestRowMatrix", function(x) c(1L, ncol(x)))
+    y <- as(xr, "TestRowMatrix")
+    y <- DelayedArray(y) * 1 # force the use of block processing.
+
+    tmp <- tempfile()
+    saveObject(y, tmp)
+    expect_identical(rhdf5::h5readAttributes(file.path(tmp, "matrix.h5"), "compressed_sparse_matrix")$layout, "CSR")
+    expect_identical(as.matrix(readObject(tmp)), core)
+})
+
 test_that("saving sparse matrices works with dimnames", {
     x <- rsparsematrix(100, 20, 0.5)
     rownames(x) <- paste0("GENE_", seq_len(nrow(x)))

@@ -177,15 +177,16 @@ setMethod("h5_write_sparse_matrix", "SVT_SparseMatrix", function(x, handle, deta
 
 setMethod("h5_write_sparse_matrix", "ANY", function(x, handle, details, ...) {
     cd <- chunkdim(x)
-    if (is.null(cd) || cd[1] * ncol(x) <= cd[2] * nrow(x)) { # i.e., number of chunks per column <= number of chunks per row, indicating it's easier to extract by column.
+    if (is.null(cd) || !isFALSE(ncol(x) / cd[2] >= nrow(x) / cd[1])) { # i.e., number of chunks per row >= number of chunks per column, indicating it's easier to extract by column.
         layout <- "CSC"
         ilimit <- nrow(x)
+        grid <- colAutoGrid(x)
     } else {
         layout <- "CSR"
         ilimit <- ncol(x)
+        grid <- rowAutoGrid(x)
     }
 
-    grid <- colAutoGrid(x)
     out <- vector("list", length(grid))
 
     N <- details$size
