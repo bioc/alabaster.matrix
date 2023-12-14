@@ -32,6 +32,28 @@ aggregate_sum <- function(collated, name) {
     sum(vapply(collated, function(y) y[[name]], 0L))
 }
 
+collect_from_SVT <- function(svt, fun, tt) {
+    if (is.null(svt)) {
+        attrs <- fun(tt(0))
+        attrs$non_zero <- 0L
+        return(list(attrs))
+    }
+
+    output <- vector("list", length(svt))
+    for (i in seq_along(svt)) {
+        node <- svt[[i]] 
+        if (is.null(node)) {
+            val <- tt(0)
+        } else {
+            val <- node[[2]]
+        }
+        attrs <- fun(val)
+        attrs$non_zero <- length(val)
+        output[[i]] <- attrs
+    }
+    output
+}
+
 ###################################################
 ###################################################
 
@@ -54,11 +76,7 @@ setGeneric("collect_integer_attributes", function(x) standardGeneric("collect_in
 setMethod("collect_integer_attributes", "array", .simple_integer_collector)
 
 setMethod("collect_integer_attributes", "SVT_SparseMatrix", function(x) {
-    collated <- lapply(x@SVT, function(y) {
-        out <- .simple_integer_collector(y[[2]])
-        out$non_zero <- length(y[[2]])
-        out
-    })
+    collated <- collect_from_SVT(x@SVT, .simple_integer_collector, integer)
     output <- list(non_zero=aggregate_sum(collated, "non_zero"))
     c(output, .combine_integer_attributes(collated))
 })
@@ -157,11 +175,7 @@ setMethod("collect_float_attributes", "dsparseMatrix", function(x) {
 }
 
 setMethod("collect_float_attributes", "SVT_SparseMatrix", function(x) {
-    collated <- lapply(x@SVT, function(y) {
-        out <- collect_double_attributes(y[[2]])
-        out$non_zero <- length(y[[2]])
-        out
-    })
+    collated <- collect_from_SVT(x@SVT, collect_double_attributes, double)
     output <- list(non_zero=aggregate_sum(collated, "non_zero"))
     c(output, .combine_float_attributes(collated))
 })
@@ -337,7 +351,7 @@ setMethod("collect_boolean_attributes", "lsparseMatrix", function(x) {
 })
 
 setMethod("collect_boolean_attributes", "SVT_SparseMatrix", function(x) {
-    collated <- lapply(x@SVT, function(y) list(missing=anyNA(y[[2]]), non_zero=length(y[[2]])))
+    collated <- collect_from_SVT(x@SVT, function(vals) { list(missing=anyNA(vals)) }, logical)
     list(
         missing=aggregate_any(collated, "missing"),
         non_zero=aggregate_sum(collated, "non_zero")

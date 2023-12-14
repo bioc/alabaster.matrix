@@ -241,6 +241,42 @@ test_that("writing a DelayedMatrixworks with row-major storage", {
     expect_identical(as.matrix(readObject(tmp)), core)
 })
 
+test_that("writing an SVT matrix works with empty or near-empty storage", {
+    for (it in 1:2) {
+        if (it == 1L) {
+            x <- rsparsematrix(100, 20, 0.001) * 10
+        } else {
+            x <- rsparsematrix(100, 20, 0)
+        }
+        y <- as(x, "SVT_SparseMatrix")
+        core <- as.matrix(x)
+
+        tmp <- tempfile()
+        saveObject(y, tmp)
+        expect_identical(as.matrix(readObject(tmp)), core)
+
+        # Now integers:
+        y2 <- y
+        type(y2) <- "integer"
+        core2 <- core
+        storage.mode(core2) <- "integer"
+
+        tmp <- tempfile()
+        saveObject(y2, tmp)
+        expect_identical(as.matrix(readObject(tmp)), core2)
+
+        # Now booleans:
+        y2 <- y
+        type(y2) <- "logical"
+        core2 <- core
+        storage.mode(core2) <- "logical"
+
+        tmp <- tempfile()
+        saveObject(y2, tmp)
+        expect_identical(as.matrix(readObject(tmp)), core2)
+    }
+})
+
 test_that("saving sparse matrices works with dimnames", {
     x <- rsparsematrix(100, 20, 0.5)
     rownames(x) <- paste0("GENE_", seq_len(nrow(x)))

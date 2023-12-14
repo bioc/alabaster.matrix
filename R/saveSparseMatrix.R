@@ -141,33 +141,58 @@ setMethod("h5_write_sparse_matrix", "SVT_SparseMatrix", function(x, handle, deta
     mhandle <- H5Screate_simple(1)
     on.exit(H5Sclose(mhandle), add=TRUE, after=FALSE)
 
-    start <- 1L
-    cached <- 0
-    last.cleared <- 0L
-    column.counts <- vapply(x@SVT, function(y) length(y[[1]]), 0L)
-    chunksize <- getAutoBlockLength(type(x))
+    SVT <- x@SVT
+    if (is.null(SVT)) {
+        column.counts <- integer(ncol(x))
 
-    for (i in seq_len(ncol(x))) {
-        cached <- cached + column.counts[i]
+    } else {
+        start <- 1L
+        cached <- 0
+        last.cleared <- 0L
+        chunksize <- getAutoBlockLength(type(x))
 
-        if (cached >= chunksize || i == ncol(x)) {
-            targets <- x@SVT[(last.cleared + 1L):i]
-            all.i <- unlist(lapply(targets, function(y) y[[1]]))
-            all.d <- unlist(lapply(targets, function(y) y[[2]]))
-            stopifnot(cached == length(all.d))
-
-            if (!is.null(details$placeholder)) {
-                all.d[is.missing(all.d)] <- details$placeholder
+        column.counts <- integer(length(SVT))
+        for (i in seq_along(SVT)) {
+            y <- SVT[[i]]
+            if (!is.null(y)) {
+                column.counts[i] <- length(y[[1]])
             }
+        }
 
-            H5Sselect_hyperslab(shandle, "H5S_SELECT_SET", start=start, count=cached)
-            H5Sset_extent_simple(mhandle, cached)
-            H5Dwrite(dhandle, all.d, h5spaceMem=mhandle, h5spaceFile=shandle)
-            H5Dwrite(ihandle, all.i, h5spaceMem=mhandle, h5spaceFile=shandle)
+        for (i in seq_len(ncol(x))) {
+            cached <- cached + column.counts[i]
 
-            last.cleared <- i
-            start <- start + cached
-            cached <- 0
+            if (cached >= chunksize || i == ncol(x)) {
+                targets <- SVT[(last.cleared + 1L):i]
+                all.i <- all.d <- vector("list", length(targets))
+                for (j in seq_along(targets)) {
+                    y <- targets[[j]]
+                    if (is.null(y)) {
+                        all.i[[j]] <- integer(0)
+                        all.d[[j]] <- as(NULL, type(x))
+                    } else {
+                        all.i[[j]] <- y[[1]]
+                        all.d[[j]] <- y[[2]]
+                    }
+                }
+
+                all.i <- unlist(all.i)
+                all.d <- unlist(all.d)
+                stopifnot(cached == length(all.d))
+
+                if (!is.null(details$placeholder)) {
+                    all.d[is.missing(all.d)] <- details$placeholder
+                }
+
+                H5Sselect_hyperslab(shandle, "H5S_SELECT_SET", start=start, count=cached)
+                H5Sset_extent_simple(mhandle, cached)
+                H5Dwrite(dhandle, all.d, h5spaceMem=mhandle, h5spaceFile=shandle)
+                H5Dwrite(ihandle, all.i, h5spaceMem=mhandle, h5spaceFile=shandle)
+
+                last.cleared <- i
+                start <- start + cached
+                cached <- 0
+            }
         }
     }
 
