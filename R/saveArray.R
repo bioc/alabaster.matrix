@@ -44,7 +44,6 @@ NULL
     ghandle <- H5Gcreate(fhandle, name)
     on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
 
-    h5_write_attribute(ghandle, "version", "1.0", scalar=TRUE)
     h5_write_attribute(ghandle, "type", array_type(x), scalar=TRUE)
     h5_write_attribute(ghandle, "transposed", 1L, scalar=TRUE)
 

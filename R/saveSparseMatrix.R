@@ -35,7 +35,6 @@ NULL
     ghandle <- H5Gcreate(fhandle, name)
     on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
 
-    h5_write_attribute(ghandle, "version", "1.0", scalar=TRUE)
     h5_write_attribute(ghandle, "type", to_array_type(x), scalar=TRUE)
     h5_write_vector(ghandle, "shape", dim(x), type="H5T_NATIVE_UINT32")
 
