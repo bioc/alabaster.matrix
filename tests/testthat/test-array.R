@@ -135,6 +135,23 @@ test_that("saveObject works as expected for strings", {
     expect_identical(as.matrix(readObject(tmp)), mat)
 })
 
+test_that("saveObject works as expected for all-NA arrays", {
+    mat <- matrix(NA, 50, 100)
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readObject(tmp)), mat)
+
+    storage.mode(mat) <- "integer"
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readObject(tmp)), mat)
+
+    storage.mode(mat) <- "double"
+    tmp <- tempfile()
+    saveObject(mat, tmp)
+    expect_identical(as.matrix(readObject(tmp)), mat)
+})
+
 test_that("saveObject diverts correctly with pristine dense DelayedArrays", {
     x <- DelayedArray(arr)
     expect_true(isPristine(x))

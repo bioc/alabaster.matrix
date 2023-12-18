@@ -109,6 +109,11 @@ optimize_integer_storage <- function(x) {
     if (attr$missing) {
         lower <- attr$range[1]
         upper <- attr$range[2]
+
+        # If it's infinite, that means that there are only missing values in
+        # 'x', otherwise there should have been at least one finite value
+        # available. In any case, it means we can just do whatever we want so
+        # we'll just use the smallest type.
         if (is.infinite(lower)) {
             return(list(type="H5T_NATIVE_INT8", placeholder=as.integer(-2^7), size=attr$non_zero))
         }
@@ -132,6 +137,10 @@ optimize_integer_storage <- function(x) {
     } else {
         lower <- attr$range[1]
         upper <- attr$range[2]
+
+        # If it's infinite, that means that 'x' is of length zero, otherwise
+        # there should have been at least one finite value available. Here,
+        # the type doesn't matter, so we'll just use the smallest. 
         if (is.infinite(lower)) {
             return(list(type="H5T_NATIVE_INT8", placeholder=NULL, size=attr$non_zero))
         }
