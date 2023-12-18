@@ -17,7 +17,10 @@ optimize_storage <- function(x) {
 ###################################################
 
 aggregate_range <- function(collated, name) {
-    range(unlist(lapply(collated, function(y) y[[name]])))
+    c(
+        min(unlist(lapply(collated, function(y) y[[name]][1]))),
+        max(unlist(lapply(collated, function(y) y[[name]][2])))
+    )
 }
 
 aggregate_any <- function(collated, name) {

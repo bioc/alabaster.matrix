@@ -242,10 +242,17 @@ test_that("writing a DelayedMatrixworks with row-major storage", {
 })
 
 test_that("writing an SVT matrix works with empty or near-empty storage", {
-    for (it in 1:2) {
+    for (it in 1:3) {
         if (it == 1L) {
+            # Near-empty, with small integers.
             x <- rsparsematrix(100, 20, 0.001) * 10
+        } else if (it == 2L) {
+            # Near-empty, with larger integers. This checks that the type
+            # optimization doesn't get screwed up by Infs after performing
+            # range() on an empty vector.
+            x <- rsparsematrix(100, 20, 0.001) * 1e6
         } else {
+            # Actually empty.
             x <- rsparsematrix(100, 20, 0)
         }
         y <- as(x, "SVT_SparseMatrix")
