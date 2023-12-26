@@ -33,7 +33,9 @@ test_that("ReloadedArrays save correctly", {
     tmp <- tempfile()
     saveObject(obj, tmp, reloadedarray.reuse.files="symlink")
     expect_identical(as.array(readObject(tmp)), arr)
-    expect_identical(Sys.readlink(tmp), dir)
+    if (.Platform$OS.type=="unix") {
+        expect_identical(Sys.readlink(tmp), dir)
+    }
 
     tmp <- tempfile()
     saveObject(obj, tmp, reloadedarray.reuse.files="link")
