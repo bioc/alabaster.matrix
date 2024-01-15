@@ -7,14 +7,25 @@
 \alias{saveObject,DelayedArray-method}
 \title{Save DelayedArrays to disk}
 \usage{
-\S4method{saveObject}{DelayedArray}(x, path, delayedarray.preserve.ops = FALSE, ...)
+\S4method{saveObject}{DelayedArray}(
+  x,
+  path,
+  delayedarray.dispatch.pristine = TRUE,
+  delayedarray.preserve.ops = FALSE,
+  delayedarray.store.args = list(),
+  ...
+)
 }
 \arguments{
 \item{x}{A \linkS4class{DelayedArray} object.}
 
 \item{path}{String containing a path to a directory in which to save \code{x}.}
 
+\item{delayedarray.dispatch.pristine}{Logical scalar indicating whether to call the \code{\link{saveObject}} methods of seeds of pristine arrays.}
+
 \item{delayedarray.preserve.ops}{Logical scalar indicating whether delayed operations should be preserved on-disk.}
+
+\item{delayedarray.store.args}{Named arguments to pass to \code{\link{storeDelayedObject}}.}
 
 \item{...}{Further arguments, ignored.}
 }
@@ -30,7 +41,7 @@ rownames(mat) <- paste0("GENE_", seq_len(nrow(mat)))
 dmat <- DelayedArray::DelayedArray(mat) * 1
 
 dir <- tempfile()
-saveObject(dmat, dir)
+saveObject(dmat, dir, delayed.preserve.ops=TRUE)
 list.files(dir)
 
 }

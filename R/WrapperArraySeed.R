@@ -6,15 +6,6 @@
 #' Concrete subclasses are expected to attach more provenance-tracking information,
 #' while the internal seed handles the heavy lifting of data extraction, e.g., \linkS4class{H5SparseMatrixSeed} or \linkS4class{HDF5ArraySeed} objects.
 #'
-#' Subclass developers can also create methods for the \code{loadWrapperArray} generic.
-#' This should accept two arguments:
-#' \itemize{
-#' \item \code{meta}, a list containing metadata for the array.
-#' \item \code{project}, an object specifying the project of interest.
-#' This is the sole argument used for S4 dispatch.
-#' }
-#' It should then return an instance of a WrapperArray subclass that retains some provenance about the resource from which it was generated.
-#'
 #' @aliases
 #' loadWrapperArray
 #' WrapperArraySeed-class
@@ -68,5 +59,3 @@ setMethod("extract_array", "WrapperArraySeed", function(x, index) callGeneric(x@
 #' @export
 #' @importFrom DelayedArray OLD_extract_sparse_array
 setMethod("OLD_extract_sparse_array", "WrapperArraySeed", function(x, index) callGeneric(x@seed, index))
-
-

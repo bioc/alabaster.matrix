@@ -17,15 +17,6 @@ Virtual class for a DelayedArray wrapper seed.
 This automatically forwards DelayedArray generic operations onto an internal seed class.
 Concrete subclasses are expected to attach more provenance-tracking information,
 while the internal seed handles the heavy lifting of data extraction, e.g., \linkS4class{H5SparseMatrixSeed} or \linkS4class{HDF5ArraySeed} objects.
-
-Subclass developers can also create methods for the \code{loadWrapperArray} generic.
-This should accept two arguments:
-\itemize{
-\item \code{meta}, a list containing metadata for the array.
-\item \code{project}, an object specifying the project of interest.
-This is the sole argument used for S4 dispatch.
-}
-It should then return an instance of a WrapperArray subclass that retains some provenance about the resource from which it was generated.
 }
 \examples{
 # Mocking up a concrete wrapper array class, which contains an

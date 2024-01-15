@@ -4,7 +4,9 @@
 #'
 #' @param x A \linkS4class{DelayedArray} object.
 #' @param path String containing a path to a directory in which to save \code{x}.
+#' @param delayedarray.dispatch.pristine Logical scalar indicating whether to call the \code{\link{saveObject}} methods of seeds of pristine arrays. 
 #' @param delayedarray.preserve.ops Logical scalar indicating whether delayed operations should be preserved on-disk.
+#' @param delayedarray.store.args Named arguments to pass to \code{\link{storeDelayedObject}}.
 #' @param ... Further arguments, ignored.
 #'
 #' @return
@@ -17,7 +19,7 @@
 #' dmat <- DelayedArray::DelayedArray(mat) * 1
 #'
 #' dir <- tempfile()
-#' saveObject(dmat, dir)
+#' saveObject(dmat, dir, delayed.preserve.ops=TRUE)
 #' list.files(dir)
 #'
 #' @name saveDelayedArray
@@ -29,8 +31,8 @@ NULL
 #' @export
 #' @rdname saveDelayedArray
 #' @importFrom DelayedArray isPristine seed
-setMethod("saveObject", "DelayedArray", function(x, path, delayedarray.preserve.ops=FALSE, ...) {
-    if (isPristine(x)) {
+setMethod("saveObject", "DelayedArray", function(x, path, delayedarray.dispatch.pristine=TRUE, delayedarray.preserve.ops=FALSE, delayedarray.store.args=list(), ...) {
+    if (delayedarray.dispatch.pristine && isPristine(x)) {
         s <- seed(x)
         fun <- selectMethod("saveObject", class(s), optional=TRUE)
         if (!is.null(fun)) {
@@ -45,7 +47,16 @@ setMethod("saveObject", "DelayedArray", function(x, path, delayedarray.preserve.
             .save_array(x, path, ...)
         }
     } else {
-        stop("preservation of delayed operations is not currently supported")
+        dir.create(path)
+        saveObjectFile(path, "delayed_array", list(delayed_array=list(version="1.0")))
+
+        fhandle <- H5Fcreate(file.path(path, "array.h5"))
+        on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
+        do.call(storeDelayedObject, c(list(x@seed, handle=fhandle, name="delayed_array"), delayedarray.store.args))
+
+        ghandle <- H5Gopen(fhandle, "delayed_array")
+        on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
+        h5_write_attribute(ghandle, "delayed_version", "1.1")
     }
 
     invisible(NULL)
