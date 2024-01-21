@@ -165,16 +165,21 @@ test_that("saveObject works correctly with dense block processing", {
     x <- DelayedArray(arr) * 1L
     expect_false(isPristine(x))
 
-    tmp <- tempfile(fileext=".h5")
-    local({
-        old <- getAutoBlockSize()
-        setAutoBlockSize(20000)
-        on.exit(setAutoBlockSize(old))
-        saveObject(x, tmp)
-    })
+    for (bs in c(100, 200, 1000, 2000)) {
+        tmp <- tempfile(fileext=".h5")
+        local({
+            oldh <- HDF5Array::getHDF5DumpChunkLength()
+            olds <- getAutoBlockSize()
+            HDF5Array::setHDF5DumpChunkLength(bs)
+            setAutoBlockSize(bs * 4L)
+            on.exit(HDF5Array::setHDF5DumpChunkLength(oldh))
+            on.exit(setAutoBlockSize(olds), add=TRUE)
+            saveObject(x, tmp)
+        })
 
-    roundtrip <- readObject(tmp)
-    expect_identical(as.array(roundtrip), arr)
+        roundtrip <- readObject(tmp)
+        expect_identical(as.array(roundtrip), arr)
+    }
 })
 
 test_that("reading dense arrays work with non-default NA placeholders", {

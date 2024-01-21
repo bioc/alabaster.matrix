@@ -86,8 +86,8 @@ setMethod("saveObject", "denseMatrix", function(x, path, ...) {
 ######### INTERNALS ##########
 ##############################
 
-#' @importFrom HDF5Array getHDF5DumpCompressionLevel getHDF5DumpChunkDim
-#' @importFrom DelayedArray currentViewport
+#' @importFrom HDF5Array getHDF5DumpCompressionLevel getHDF5DumpChunkDim HDF5RealizationSink
+#' @importFrom DelayedArray currentViewport blockApply defaultSinkAutoGrid
 #' @importFrom BiocGenerics start
 h5_write_array <- function(handle, name, x, type, placeholder, extract.native=NULL, compress=getHDF5DumpCompressionLevel(), chunks=NULL) {
     shandle <- H5Screate_simple(dim(x))
@@ -104,6 +104,11 @@ h5_write_array <- function(handle, name, x, type, placeholder, extract.native=NU
             chunks <- getHDF5DumpChunkDim(dim(x))
         }
         H5Pset_chunk(phandle, chunks)
+    } else {
+        # We'll treat each stretch of the first dimension as a 'chunk' to
+        # encourage the block processing to behave contiguously.
+        chunks <- rep(1L, length(dim(x)))
+        chunks[1] <- dim(x)[1]
     }
 
     dhandle <- H5Dcreate(handle, name, dtype_id=type, h5space=shandle, dcpl=phandle)
@@ -113,7 +118,15 @@ h5_write_array <- function(handle, name, x, type, placeholder, extract.native=NU
         # Writing is done from fastest dimension in R to fastest dimension in HDF5,
         # so the transposition is implicit.
         H5Dwrite(dhandle, extract.native(x))
+
     } else {
+        # We want to iterate using the OUTPUT chunk dimensions, not the input
+        # block size. This is because we KNOW that the output is a HDF5 handle
+        # where it is expensive to cross chunk boundaries, whereas the input
+        # may or may not have such issues.
+        mock_sink <- HDF5RealizationSink(dim(x), chunkdim=chunks, type=type(x))
+        grid <- defaultSinkAutoGrid(mock_sink)
+
         blockApply(x, function(y) {
             if (!is.null(placeholder) && anyMissing(y)) {
                 y[is.missing(y)] <- placeholder
@@ -123,7 +136,7 @@ h5_write_array <- function(handle, name, x, type, placeholder, extract.native=NU
             view <- currentViewport()
             H5Sselect_hyperslab(shandle, "H5S_SELECT_SET", start=start(view), count=dim(view))
             H5Dwrite(dhandle, y, h5spaceMem=mem_shandle, h5spaceFile=shandle)
-        })
+        }, grid=grid)
     }
 }
 
