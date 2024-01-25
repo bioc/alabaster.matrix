@@ -41,14 +41,13 @@ Its main purpose is to track the \code{path} that was originally used to generat
 
 One obvious optimization is the specialization of \code{\link{saveObject}} on ReloadedArray instances.
 Instead of loading the array data back into the R session and saving it again, the \code{saveObject} method can just link or copy the existing files.
-This behavior is controlled by the optional \code{reloadedarray.reuse.files} option, which can be one of:
+This behavior is controlled by the optional \code{reloadedarray.reuse.files} option in the \code{saveObject} method, which can be one of:
 \itemize{
-\item \code{"copy"}: copy the files from the previous \code{path} (as stored in the ReloadedArray object) to the new \code{path} specified in \code{saveObject}.
-\item \code{"link"}: create a hard link from the files in the previous \code{path} to the new \code{path}.
+\item \code{"copy"}: copy the files from the original directory (as stored in the ReloadedArray object) to the new \code{path} specified in \code{saveObject}.
+\item \code{"link"}: create a hard link from the files in the original directory to the new \code{path}.
 If this fails, we silently fall back to a copy.
 This mode is the default approach.
-\item \code{"symlink"}: create a symbolic link from the previous directory at \code{path} to the new \code{path}.
-If this fails, we fall back to a copy with a warning.
+\item \code{"symlink"}: create a symbolic link from the files in the original directory to the new \code{path}.
 \item \code{"none"}: ignore existing files and just save the contents by calling \code{"\link{saveObject,DelayedArray-method}"}.
 }
 }

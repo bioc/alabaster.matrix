@@ -19,14 +19,13 @@
 #'
 #' One obvious optimization is the specialization of \code{\link{saveObject}} on ReloadedArray instances.
 #' Instead of loading the array data back into the R session and saving it again, the \code{saveObject} method can just link or copy the existing files.
-#' This behavior is controlled by the optional \code{reloadedarray.reuse.files} option, which can be one of:
+#' This behavior is controlled by the optional \code{reloadedarray.reuse.files} option in the \code{saveObject} method, which can be one of:
 #' \itemize{
-#' \item \code{"copy"}: copy the files from the previous \code{path} (as stored in the ReloadedArray object) to the new \code{path} specified in \code{saveObject}.
-#' \item \code{"link"}: create a hard link from the files in the previous \code{path} to the new \code{path}.
+#' \item \code{"copy"}: copy the files from the original directory (as stored in the ReloadedArray object) to the new \code{path} specified in \code{saveObject}.
+#' \item \code{"link"}: create a hard link from the files in the original directory to the new \code{path}.
 #' If this fails, we silently fall back to a copy.
 #' This mode is the default approach.
-#' \item \code{"symlink"}: create a symbolic link from the previous directory at \code{path} to the new \code{path}.
-#' If this fails, we fall back to a copy with a warning.
+#' \item \code{"symlink"}: create a symbolic link from the files in the original directory to the new \code{path}.
 #' \item \code{"none"}: ignore existing files and just save the contents by calling \code{"\link{saveObject,DelayedArray-method}"}.
 #' }
 #' 
@@ -94,28 +93,24 @@ setMethod("saveObject", "ReloadedArray", function(x, path, reloadedarray.reuse.f
         x <- DelayedArray(s@seed)
         return(callNextMethod())
     } 
-    
-    if (reloadedarray.reuse.files == "symlink") {
-        if (file.symlink(s@path, path)) {
-            return(invisible(NULL))
-        } else {
-            warning("failed to create a symlink from '", s@path, "' to '", path, "', falling back to copies")
-            reloadedarray.reuse.files <- "copy"
-        }
-    }
 
     manifest <- list.files(s@path, recursive=TRUE)
     dir.create(path)
 
-    if (reloadedarray.reuse.files == "link") {
+    if (reloadedarray.reuse.files == "symlink") {
+        fun <- file.symlink
+        msg <- "link"
+    } else if (reloadedarray.reuse.files == "link") {
         fun <- function(from, to) file.link(from, to) || file.copy(from, to)
+        msg <- "copy or link"
     } else {
         fun <- file.copy
+        msg <- "copy"
     }
 
     for (y in manifest) {
         if (!fun(file.path(s@path, y), file.path(path, y))) {
-            stop("failed to copy '", y, "' from '", s@path, "' to '", path, "'")
+            stop("failed to ", msg, " '", y, "' from '", s@path, "' to '", path, "'")
         }
     }
 

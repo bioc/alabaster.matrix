@@ -34,9 +34,11 @@ test_that("ReloadedArrays save correctly", {
     saveObject(obj, tmp, reloadedarray.reuse.files="symlink")
     expect_identical(as.array(readObject(tmp)), arr)
     if (.Platform$OS.type=="unix") {
-        expect_identical(Sys.readlink(tmp), dir)
+        expect_identical(Sys.readlink(file.path(tmp, "array.h5")), file.path(dir, "array.h5"))
     }
 
+    # file.info() doesn't report the inode number so we don't have an easy way
+    # to distinguish between hard links and a copy. Oh well.
     tmp <- tempfile()
     saveObject(obj, tmp, reloadedarray.reuse.files="link")
     expect_identical(as.array(readObject(tmp)), arr)
