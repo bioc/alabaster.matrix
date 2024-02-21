@@ -64,8 +64,10 @@ readSparseMatrix <- function(path, metadata, sparsematrix.output.type=NULL, ...)
         out <- DelayedMask(out, placeholder=details$placeholder)
         out <- DelayedArray(out)
     }
-    tt <- from_array_type(details$type)
-    type(out) <- tt
+    intended.type <- from_array_type(details$type)
+    if (type(out) != intended.type) {
+        type(out) <- intended.type
+    }
 
     if (is.null(sparsematrix.output.type)) {
         sparsematrix.output.type <- "ReloadedArray"
@@ -73,12 +75,12 @@ readSparseMatrix <- function(path, metadata, sparsematrix.output.type=NULL, ...)
         sparsematrix.output.type <- match.arg(sparsematrix.output.type, c("CsparseMatrix", "SVT_SparseMatrix", "ReloadedArray"))
     }
     if (sparsematrix.output.type == "CsparseMatrix") {
-        if (tt == "logical") {
+        if (intended.type == "logical") {
             return(as(out, "lgCMatrix"))
-        } else if (tt == "double") {
+        } else if (intended.type == "double") {
             return(as(out, "dgCMatrix"))
         } else {
-            warning("cannot faithfully coerce a sparse matrix of type '", tt, "' to a CsparseMatrix subclass")
+            warning("cannot faithfully coerce a sparse matrix of type '", intended.type, "' to a CsparseMatrix subclass")
             return(as(out, "dgCMatrix"))
         }
     }

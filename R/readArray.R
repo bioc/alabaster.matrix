@@ -74,7 +74,10 @@ readArray <- function(path, metadata, array.output.type=NULL, ...) {
         out <- DelayedMask(out, placeholder=details$placeholder)
         out <- DelayedArray(out)
     }
-    type(out) <- from_array_type(details$type)
+    intended.type <- from_array_type(details$type)
+    if (type(out) != intended.type) {
+        type(out) <- intended.type
+    }
 
     if (is.null(array.output.type)) {
         array.output.type <- "ReloadedArray"
