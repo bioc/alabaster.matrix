@@ -11,12 +11,20 @@
 \alias{is_sparse,WrapperArraySeed-method}
 \alias{extract_array,WrapperArraySeed-method}
 \alias{OLD_extract_sparse_array,WrapperArraySeed-method}
+\alias{WrapperArray-class}
+\alias{coerce,WrapperArray,dgCMatrix-method}
+\alias{coerce,WrapperArraySeed,dgCMatrix-method}
 \title{DelayedArray wrapper seed}
 \description{
-Virtual class for a DelayedArray wrapper seed.
-This automatically forwards DelayedArray generic operations onto an internal seed class.
-Concrete subclasses are expected to attach more provenance-tracking information,
-while the internal seed handles the heavy lifting of data extraction, e.g., \linkS4class{H5SparseMatrixSeed} or \linkS4class{HDF5ArraySeed} objects.
+The WrapperArraySeed is, as the name suggests, a virtual class for a DelayedArray wrapper seed.
+This forwards most of the DelayedArray generic operations onto an internal seed class,
+typically a \linkS4class{H5SparseMatrixSeed} or \linkS4class{HDF5ArraySeed} objects from \code{\link{readSparseMatrix}} or \code{\link{readArray}}.
+Similarly, the WrapperArray is a virtual DelayedArray class that contains a WrapperArraySeed.
+
+If an \pkg{alabaster} application operates on large arrays, developers may can consider defining concrete subclasses of the WrapperArraySeed (and WrapperArray).
+These subclasses can store application-specific provenance-tracking information that persist throughout the lifetime of the array.
+Such information is most useful for optimizing \code{\link{saveObject}} calls, which can instruct the application to link to the existing array rather than creating a new file.
+Check out the \link{ReloadedArraySeed} class for an example of this approach.
 }
 \examples{
 # Mocking up a concrete wrapper array class, which contains an

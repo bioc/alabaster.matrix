@@ -3,6 +3,10 @@
 setClass("WrapperArraySeed", contains="VIRTUAL", slots=c(seed="ANY"))
 
 #' @export
+#' @importClassesFrom DelayedArray DelayedArray
+setClass("WrapperArray", contains=c("VIRTUAL", "DelayedArray"), slots=c(seed="WrapperArraySeed"))
+
+#' @export
 #' @importClassesFrom DelayedArray DelayedAbind
 setClass("AmalgamatedArraySeed", contains="DelayedAbind", slots=c(samples = "character"))
 
@@ -18,8 +22,7 @@ setClass("AmalgamatedMatrix", contains=c("AmalgamatedArray", "DelayedMatrix"))
 setClass("ReloadedArraySeed", contains="WrapperArraySeed", slots=c(path="character"))
 
 #' @export
-#' @importClassesFrom DelayedArray DelayedArray
-setClass("ReloadedArray", contains="DelayedArray", slots=c(seed = "ReloadedArraySeed"))
+setClass("ReloadedArray", contains="WrapperArray", slots=c(seed="ReloadedArraySeed"))
 
 #' @export
 #' @importClassesFrom DelayedArray DelayedMatrix
