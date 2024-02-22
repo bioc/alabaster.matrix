@@ -6,13 +6,13 @@ library(rhdf5)
 
 saveDelayed <- function(x, ...) {
     tmp <- tempfile()
-    saveObject(x, tmp, delayedarray.dispatch.pristine=FALSE, delayedarray.preserve.ops=TRUE, delayedarray.store.args=list(...))
+    saveObject(x, tmp, DelayedArray.dispatch.pristine=FALSE, DelayedArray.preserve.ops=TRUE, DelayedArray.store.args=list(...))
     stopifnot(readObjectFile(tmp)$type == "delayed_array")
     tmp
 }
 
 loadDelayed <- function(path, ...) {
-    raw <- readObject(path, delayedarray.reload.args=list(...))
+    raw <- readObject(path, delayed_array.reload.args=list(...))
     DelayedArray(raw@seed@seed)
 }
 

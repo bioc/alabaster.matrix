@@ -12,18 +12,16 @@ test_that("reading a sparse matrix works with different output types", {
     saveObject(x, tmp)
     roundtrip <- readObject(tmp)
     expect_identical(BiocGenerics::path(roundtrip), tmp)
+    expect_s4_class(roundtrip, "ReloadedArray")
+    expect_true(is_sparse(roundtrip))
     expect_identical(as(roundtrip, "dgCMatrix"), x)
-
-    # Reading works with options to load it into memory.
-    roundtrip2 <- readObject(tmp, sparsematrix.output.type="CsparseMatrix")
-    expect_identical(roundtrip2, x)
 
     # Trying with a logical matrix.
     x <- rsparsematrix(109, 297, 0.5) > 0
     tmp <- tempfile()
     saveObject(x, tmp)
-    roundtrip2 <- readObject(tmp, sparsematrix.output.type="CsparseMatrix")
-    expect_identical(as.matrix(roundtrip2), as.matrix(x))
+    roundtrip2 <- readObject(tmp)
+    expect_identical(as.matrix(roundtrip2), as.matrix(x)) # use dense matrix as 'x' still contains zeros in its structural non-zeros.
 
     # Trying with an integer matrix.
     x <- rsparsematrix(109, 297, 0.5) * 10
@@ -31,8 +29,8 @@ test_that("reading a sparse matrix works with different output types", {
     type(x) <- "integer"
     tmp <- tempfile()
     saveObject(x, tmp)
-    expect_warning(roundtrip2 <- readObject(tmp, sparsematrix.output.type="CsparseMatrix"), "cannot faithfully")
-    expect_identical(roundtrip2, as(x, "dgCMatrix"))
+    roundtrip3 <- readObject(tmp)
+    expect_identical(as(roundtrip3, "dgCMatrix"), as(x, "dgCMatrix"))
 })
 
 test_that("writing to a sparse matrix works as expected for numeric data", {

@@ -5,7 +5,7 @@
 #'
 #' @param path String containing a path to a directory, itself created by the \code{\link{saveObject}} method for a delayed array.
 #' @param metadata Named list of metadata for this object, see \code{\link{readObject}} for more details.
-#' @param delayedarray.reload.args Named list of arguments to be passed to \code{\link{reloadDelayedObject}}.
+#' @param delayed_array.reload.args Named list of arguments to be passed to \code{\link{reloadDelayedObject}}.
 #' @param ... Further arguments, ignored.
 #' 
 #' @return A multi-dimensional array-like object.
@@ -28,10 +28,10 @@
 #' readObject(dir)
 #' 
 #' @export
-readDelayedArray <- function(path, metadata, delayedarray.reload.args=list(), ...) {
+readDelayedArray <- function(path, metadata, delayed_array.reload.args=list(), ...) {
     fpath <- file.path(path, "array.h5")
     fhandle <- H5Fopen(fpath, "H5F_ACC_RDONLY")
     on.exit(H5Fclose(fhandle))
-    out <- do.call(reloadDelayedObject, c(list(fhandle, "delayed_array"), delayedarray.reload.args))
+    out <- do.call(reloadDelayedObject, c(list(fhandle, "delayed_array"), delayed_array.reload.args))
     ReloadedArray(path=path, seed=out)
 }

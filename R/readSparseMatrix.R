@@ -5,16 +5,10 @@
 #'
 #' @param path String containing a path to a directory, itself created by the \code{\link{saveObject}} method for a spars matrix.
 #' @param metadata Named list of metadata for this object, see \code{\link{readObject}} for more details.
-#' @param sparsematrix.output.type String specifying the output type for this function.
-#' This can be \code{"CsparseMatrix"}, \code{"SVT_SparseMatrix"} or \code{"ReloadedArray"} (the default).
 #' @param ... Further arguments, ignored.
 #' 
-#' @return A sparse \linkS4class{DelayedMatrix} object.
+#' @return A sparse \linkS4class{ReloadedMatrix} object.
 #' 
-#' @details
-#' By default, a file-backed \linkS4class{ReloadedArray} is returned to save memory and to preserve the provenance of the object.
-#' Users can set \code{sparsematrix.output.type="CsparseMatrix"} to force \code{readSparseMatrix} to load all data into memory as a \linkS4class{CsparseMatrix} subclass.
-#'
 #' @seealso
 #' \code{"\link{saveObject,sparseMatrix-method}"}, to create the directory and its contents.
 #'
@@ -30,7 +24,7 @@
 #' @export
 #' @importFrom HDF5Array H5SparseMatrixSeed
 #' @importFrom DelayedArray type<-
-readSparseMatrix <- function(path, metadata, sparsematrix.output.type=NULL, ...) {
+readSparseMatrix <- function(path, metadata, ...) {
     fpath <- file.path(path, "matrix.h5")
     name <- "compressed_sparse_matrix"
 
@@ -69,20 +63,5 @@ readSparseMatrix <- function(path, metadata, sparsematrix.output.type=NULL, ...)
         type(out) <- intended.type
     }
 
-    if (is.null(sparsematrix.output.type)) {
-        sparsematrix.output.type <- "ReloadedArray"
-    } else {
-        sparsematrix.output.type <- match.arg(sparsematrix.output.type, c("CsparseMatrix", "SVT_SparseMatrix", "ReloadedArray"))
-    }
-    if (sparsematrix.output.type == "CsparseMatrix") {
-        if (intended.type == "logical") {
-            return(as(out, "lgCMatrix"))
-        } else if (intended.type == "double") {
-            return(as(out, "dgCMatrix"))
-        } else {
-            warning("cannot faithfully coerce a sparse matrix of type '", intended.type, "' to a CsparseMatrix subclass")
-            return(as(out, "dgCMatrix"))
-        }
-    }
     ReloadedArray(path, seed=out)
 }

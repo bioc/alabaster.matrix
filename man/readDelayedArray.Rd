@@ -4,14 +4,14 @@
 \alias{readDelayedArray}
 \title{Read a delayed array from disk}
 \usage{
-readDelayedArray(path, metadata, delayedarray.reload.args = list(), ...)
+readDelayedArray(path, metadata, delayed_array.reload.args = list(), ...)
 }
 \arguments{
 \item{path}{String containing a path to a directory, itself created by the \code{\link{saveObject}} method for a delayed array.}
 
 \item{metadata}{Named list of metadata for this object, see \code{\link{readObject}} for more details.}
 
-\item{delayedarray.reload.args}{Named list of arguments to be passed to \code{\link{reloadDelayedObject}}.}
+\item{delayed_array.reload.args}{Named list of arguments to be passed to \code{\link{reloadDelayedObject}}.}
 
 \item{...}{Further arguments, ignored.}
 }

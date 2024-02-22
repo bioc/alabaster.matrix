@@ -10,9 +10,9 @@
 \S4method{saveObject}{DelayedArray}(
   x,
   path,
-  delayedarray.dispatch.pristine = TRUE,
-  delayedarray.preserve.ops = FALSE,
-  delayedarray.store.args = list(),
+  DelayedArray.dispatch.pristine = TRUE,
+  DelayedArray.preserve.ops = FALSE,
+  DelayedArray.store.args = list(),
   ...
 )
 }
@@ -21,11 +21,11 @@
 
 \item{path}{String containing a path to a directory in which to save \code{x}.}
 
-\item{delayedarray.dispatch.pristine}{Logical scalar indicating whether to call the \code{\link{saveObject}} methods of seeds of pristine arrays.}
+\item{DelayedArray.dispatch.pristine}{Logical scalar indicating whether to call the \code{\link{saveObject}} methods of seeds of pristine arrays.}
 
-\item{delayedarray.preserve.ops}{Logical scalar indicating whether delayed operations should be preserved on-disk.}
+\item{DelayedArray.preserve.ops}{Logical scalar indicating whether delayed operations should be preserved on-disk.}
 
-\item{delayedarray.store.args}{Named arguments to pass to \code{\link{storeDelayedObject}}.}
+\item{DelayedArray.store.args}{Named arguments to pass to \code{\link{storeDelayedObject}}.}
 
 \item{...}{Further arguments, ignored.}
 }

@@ -4,28 +4,21 @@
 \alias{readSparseMatrix}
 \title{Read a sparse matrix from disk}
 \usage{
-readSparseMatrix(path, metadata, sparsematrix.output.type = NULL, ...)
+readSparseMatrix(path, metadata, ...)
 }
 \arguments{
 \item{path}{String containing a path to a directory, itself created by the \code{\link{saveObject}} method for a spars matrix.}
 
 \item{metadata}{Named list of metadata for this object, see \code{\link{readObject}} for more details.}
 
-\item{sparsematrix.output.type}{String specifying the output type for this function.
-This can be \code{"CsparseMatrix"}, \code{"SVT_SparseMatrix"} or \code{"ReloadedArray"} (the default).}
-
 \item{...}{Further arguments, ignored.}
 }
 \value{
-A sparse \linkS4class{DelayedMatrix} object.
+A sparse \linkS4class{ReloadedMatrix} object.
 }
 \description{
 Read a sparse matrix from its on-disk representation.
 This is usually not directly called by users, but is instead called by dispatch in \code{\link{readObject}}.
-}
-\details{
-By default, a file-backed \linkS4class{ReloadedArray} is returned to save memory and to preserve the provenance of the object.
-Users can set \code{sparsematrix.output.type="CsparseMatrix"} to force \code{readSparseMatrix} to load all data into memory as a \linkS4class{CsparseMatrix} subclass.
 }
 \examples{
 mat <- Matrix::rsparsematrix(100, 200, density=0.2)

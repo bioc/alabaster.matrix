@@ -4,9 +4,9 @@
 #'
 #' @param x A \linkS4class{DelayedArray} object.
 #' @param path String containing a path to a directory in which to save \code{x}.
-#' @param delayedarray.dispatch.pristine Logical scalar indicating whether to call the \code{\link{saveObject}} methods of seeds of pristine arrays. 
-#' @param delayedarray.preserve.ops Logical scalar indicating whether delayed operations should be preserved on-disk.
-#' @param delayedarray.store.args Named arguments to pass to \code{\link{storeDelayedObject}}.
+#' @param DelayedArray.dispatch.pristine Logical scalar indicating whether to call the \code{\link{saveObject}} methods of seeds of pristine arrays. 
+#' @param DelayedArray.preserve.ops Logical scalar indicating whether delayed operations should be preserved on-disk.
+#' @param DelayedArray.store.args Named arguments to pass to \code{\link{storeDelayedObject}}.
 #' @param ... Further arguments, ignored.
 #'
 #' @return
@@ -31,8 +31,8 @@ NULL
 #' @export
 #' @rdname saveDelayedArray
 #' @importFrom DelayedArray isPristine seed
-setMethod("saveObject", "DelayedArray", function(x, path, delayedarray.dispatch.pristine=TRUE, delayedarray.preserve.ops=FALSE, delayedarray.store.args=list(), ...) {
-    if (delayedarray.dispatch.pristine && isPristine(x)) {
+setMethod("saveObject", "DelayedArray", function(x, path, DelayedArray.dispatch.pristine=TRUE, DelayedArray.preserve.ops=FALSE, DelayedArray.store.args=list(), ...) {
+    if (DelayedArray.dispatch.pristine && isPristine(x)) {
         s <- seed(x)
         fun <- selectMethod("saveObject", class(s), optional=TRUE)
         if (!is.null(fun)) {
@@ -40,7 +40,7 @@ setMethod("saveObject", "DelayedArray", function(x, path, delayedarray.dispatch.
         }
     }
 
-    if (!delayedarray.preserve.ops) {
+    if (!DelayedArray.preserve.ops) {
         if (is_sparse(x)) {
             .save_compressed_sparse_matrix(x, path, ...)
         } else {
@@ -52,7 +52,7 @@ setMethod("saveObject", "DelayedArray", function(x, path, delayedarray.dispatch.
 
         fhandle <- H5Fcreate(file.path(path, "array.h5"))
         on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
-        do.call(storeDelayedObject, c(list(x@seed, handle=fhandle, name="delayed_array"), delayedarray.store.args))
+        do.call(storeDelayedObject, c(list(x@seed, handle=fhandle, name="delayed_array"), DelayedArray.store.args))
 
         ghandle <- H5Gopen(fhandle, "delayed_array")
         on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
