@@ -19,7 +19,7 @@
 #'
 #' One obvious optimization is the specialization of \code{\link{saveObject}} on ReloadedArray instances.
 #' Instead of loading the array data back into the R session and saving it again, the \code{saveObject} method can just link or copy the existing files.
-#' This behavior is controlled by the optional \code{reloadedarray.reuse.files} option in the \code{saveObject} method, which can be one of:
+#' This behavior is controlled by the optional \code{ReloadedArray.reuse.files} option in the \code{saveObject} method, which can be one of:
 #' \itemize{
 #' \item \code{"copy"}: copy the files from the original directory (as stored in the ReloadedArray object) to the new \code{path} specified in \code{saveObject}.
 #' \item \code{"link"}: create a hard link from the files in the original directory to the new \code{path}.
@@ -86,10 +86,10 @@ setAs("ReloadedMatrix", "ReloadedArray", function(from) from)
 setMethod("path", "ReloadedArraySeed", function(object, ...) object@path)
 
 #' @export
-setMethod("saveObject", "ReloadedArray", function(x, path, reloadedarray.reuse.files="link", ...) {
-    reloadedarray.reuse.files <- match.arg(reloadedarray.reuse.files, c("none", "copy", "link", "symlink"))
+setMethod("saveObject", "ReloadedArray", function(x, path, ReloadedArray.reuse.files="link", ...) {
+    ReloadedArray.reuse.files <- match.arg(ReloadedArray.reuse.files, c("none", "copy", "link", "symlink"))
     s <- x@seed
-    if (reloadedarray.reuse.files == "none") {
+    if (ReloadedArray.reuse.files == "none") {
         x <- DelayedArray(s@seed)
         return(callNextMethod())
     } 
@@ -97,10 +97,10 @@ setMethod("saveObject", "ReloadedArray", function(x, path, reloadedarray.reuse.f
     manifest <- list.files(s@path, recursive=TRUE)
     dir.create(path)
 
-    if (reloadedarray.reuse.files == "symlink") {
+    if (ReloadedArray.reuse.files == "symlink") {
         fun <- file.symlink
         msg <- "link"
-    } else if (reloadedarray.reuse.files == "link") {
+    } else if (ReloadedArray.reuse.files == "link") {
         fun <- function(from, to) file.link(from, to) || file.copy(from, to)
         msg <- "copy or link"
     } else {

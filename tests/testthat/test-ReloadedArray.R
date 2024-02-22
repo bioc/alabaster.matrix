@@ -32,14 +32,14 @@ test_that("ReloadedArrays work correctly", {
 
 test_that("ReloadedArrays save correctly", {
     tmp <- tempfile()
-    saveObject(obj, tmp, reloadedarray.reuse.files="none")
+    saveObject(obj, tmp, ReloadedArray.reuse.files="none")
     expect_identical(as.array(readObject(tmp)), arr)
 
     if (.Platform$OS.type=="unix") { 
         # This test just doesn't seem to work on Windows. Either the symlink
         # doesn't form properly, or the symlink path isn't what we expect.
         tmp <- tempfile()
-        saveObject(obj, tmp, reloadedarray.reuse.files="symlink")
+        saveObject(obj, tmp, ReloadedArray.reuse.files="symlink")
         expect_identical(as.array(readObject(tmp)), arr)
         expect_identical(Sys.readlink(file.path(tmp, "array.h5")), file.path(dir, "array.h5"))
     }
@@ -47,10 +47,10 @@ test_that("ReloadedArrays save correctly", {
     # file.info() doesn't report the inode number so we don't have an easy way
     # to distinguish between hard links and a copy. Oh well.
     tmp <- tempfile()
-    saveObject(obj, tmp, reloadedarray.reuse.files="link")
+    saveObject(obj, tmp, ReloadedArray.reuse.files="link")
     expect_identical(as.array(readObject(tmp)), arr)
 
     tmp <- tempfile()
-    saveObject(obj, tmp, reloadedarray.reuse.files="copy")
+    saveObject(obj, tmp, ReloadedArray.reuse.files="copy")
     expect_identical(as.array(readObject(tmp)), arr)
 })
