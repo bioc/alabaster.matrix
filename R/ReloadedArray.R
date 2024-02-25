@@ -60,7 +60,10 @@ ReloadedArraySeed <- function(path, seed=NULL, ...) {
     while (is(seed, "DelayedArray")) {
         seed <- seed@seed
     }
-    new("ReloadedArraySeed", path=path, seed=seed)
+
+    # Need to obtain an absolute path in order for this to be safe in
+    # saveObject(), possibly after changes to the working directory has.
+    new("ReloadedArraySeed", path=normalizePath(path, mustWork=TRUE), seed=seed)
 }
 
 #' @export

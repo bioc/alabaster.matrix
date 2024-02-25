@@ -13,14 +13,14 @@ obj2 <- readObject(dir2)
 
 test_that("ReloadedArrays work correctly", {
     expect_s4_class(obj, "ReloadedArray")
-    expect_identical(BiocGenerics::path(obj), dir)
+    expect_identical(BiocGenerics::path(obj), normalizePath(dir))
     expect_identical(dim(obj), dim(arr))
     expect_identical(extract_array(obj, vector("list", 3)), arr)
     expect_identical(as.array(obj), arr)
     expect_false(is_sparse(obj))
 
     expect_s4_class(obj2, "ReloadedMatrix")
-    expect_identical(BiocGenerics::path(obj2), dir2)
+    expect_identical(BiocGenerics::path(obj2), normalizePath(dir2))
     expect_identical(dim(obj2), dim(x))
     expect_identical(as(extract_sparse_array(obj2, vector("list", 2)), "dgCMatrix"), x)
     expect_true(is_sparse(obj2))
@@ -28,6 +28,16 @@ test_that("ReloadedArrays work correctly", {
     # Coercions work as expected.
     expect_identical(as(obj2, "dgCMatrix"), x)
     expect_identical(as(obj2@seed, "dgCMatrix"), x)
+})
+
+test_that("ReloadedArrays store the absolute path", {
+    cwd <- getwd()
+    setwd(dirname(dir))
+    on.exit(setwd(cwd))
+
+    obj <- readObject(basename(dir))
+    expect_identical(BiocGenerics::path(obj), normalizePath(dir))
+    expect_identical(as.array(obj), arr)
 })
 
 test_that("ReloadedArrays save correctly", {
