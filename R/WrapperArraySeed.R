@@ -74,15 +74,22 @@ setMethod("OLD_extract_sparse_array", "WrapperArraySeed", function(x, index) cal
 # short-circuit block processing if a more efficient method exists,
 # e.g., direct reading of HDF5 sparse contents into a dgCMatrix.
 
-.coerce_to_target_raw <- function(wrapper, seed, target) {
-    if (hasMethod("coerce", c(class(seed), target))) {
-        as(seed, target)
-    } else {
-        as(wrapper, target)
+.coerce_to_target_raw <- function(seed, target) {
+    # Trying to coerce the naked seed first, but if it doesn't have a suitable
+    # method, then we wrap it in a DelayedArray and try again.
+    coercer <- selectMethod("coerce", list(class(seed), target), optional=TRUE)
+    if (!is.null(coercer)) {
+        out <- try(coercer(seed), silent=TRUE)
+        # Some DelayedOp classes indicate that they do have a method for
+        # coercion to target but it fails, so we need to catch that case.
+        if (!is(out, "try-error")) {
+            return(out)
+        }
     }
+    as(DelayedArray(seed), target)
 }
 
-.coerce_to_target1 <- function(wrapper, target) .coerce_to_target_raw(wrapper, wrapper@seed, target)
+.coerce_to_target1 <- function(wrapper, target) .coerce_to_target_raw(wrapper@seed, target)
 
 #' @export
 setAs("WrapperArraySeed", "dgCMatrix", function(from) .coerce_to_target1(from, "dgCMatrix"))
@@ -90,7 +97,7 @@ setAs("WrapperArraySeed", "dgCMatrix", function(from) .coerce_to_target1(from, "
 # The WrapperArray class only exists to define the coercion methods so that
 # they don't have to be individually defined by each concrete subclass.
 
-.coerce_to_target2 <- function(wrapper, target) .coerce_to_target_raw(wrapper, wrapper@seed@seed, target)
+.coerce_to_target2 <- function(wrapper, target) .coerce_to_target_raw(wrapper@seed@seed, target)
 
 #' @export
 setAs("WrapperArray", "dgCMatrix", function(from) .coerce_to_target2(from, "dgCMatrix"))
