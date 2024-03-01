@@ -16,7 +16,7 @@ test_that("saveObject works as expected", {
     tmp <- tempfile()
     saveObject(arr, tmp)
     roundtrip <- readObject(tmp)
-    expect_identical(BiocGenerics::path(roundtrip), tmp)
+    expect_identical(normalizePath(BiocGenerics::path(roundtrip)), normalizePath(tmp))
     expect_identical(as.array(roundtrip), arr)
 
     # Works when it's officially integer.

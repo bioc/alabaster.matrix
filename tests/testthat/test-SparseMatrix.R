@@ -11,7 +11,7 @@ test_that("reading a sparse matrix works with different output types", {
     tmp <- tempfile()
     saveObject(x, tmp)
     roundtrip <- readObject(tmp)
-    expect_identical(BiocGenerics::path(roundtrip), tmp)
+    expect_identical(normalizePath(BiocGenerics::path(roundtrip)), normalizePath(tmp))
     expect_s4_class(roundtrip, "ReloadedArray")
     expect_true(is_sparse(roundtrip))
     expect_identical(as(roundtrip, "dgCMatrix"), x)

@@ -51,7 +51,7 @@ test_that("ReloadedArrays save correctly", {
         tmp <- tempfile()
         saveObject(obj, tmp, ReloadedArray.reuse.files="symlink")
         expect_identical(as.array(readObject(tmp)), arr)
-        expect_identical(Sys.readlink(file.path(tmp, "array.h5")), file.path(dir, "array.h5"))
+        expect_identical(normalizePath(Sys.readlink(file.path(tmp, "array.h5"))), normalizePath(file.path(dir, "array.h5")))
     }
 
     # file.info() doesn't report the inode number so we don't have an easy way
