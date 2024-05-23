@@ -251,6 +251,11 @@ setMethod(".extract_sparse_details", "dsparseMatrix", function(x) {
 
 #' @importClassesFrom SparseArray SVT_SparseMatrix
 setMethod(".extract_sparse_details", "SVT_SparseMatrix", function(x) {
+    # Can't be bothered adding support for a soft-deprecated function.
+    if (x@.svt_version > 0L) {
+        stop("SVT_SparseMatrix objects of version >= 1 are not yet supported")
+    }
+
     limits <- range(unlist(lapply(x@SVT, function(x) range(x[[2]], na.rm=TRUE))), na.rm=TRUE)
     non.int <- any(vapply(x@SVT, function(x) any(x[[2]]%%1 != 0, na.rm=TRUE), TRUE), na.rm=TRUE)
     has.missing <- any(vapply(x@SVT, function(x) .check_for_missing_value(x[[2]]), TRUE), na.rm=TRUE)
@@ -342,6 +347,10 @@ setMethod(".dump_column_sparse_matrix", "dgCMatrix", function(x, handle, index.p
 #' @importClassesFrom SparseArray SVT_SparseMatrix
 #' @importFrom DelayedArray getAutoBlockSize type 
 setMethod(".dump_column_sparse_matrix", "SVT_SparseMatrix", function(x, handle, index.path, data.path, start, transformer) {
+    if (x@.svt_version > 0L) {
+        stop("SVT_SparseMatrix objects of version >= 1 are not yet supported")
+    }
+
     # Processing things in chunks to reduce the number of HDF5 calls.
     chunksize <- min(getAutoBlockLength("integer"), getAutoBlockLength(type(x)))
     column.counts <- vapply(x@SVT, function(y) length(y[[1]]), 0L)

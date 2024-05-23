@@ -320,7 +320,8 @@ chihaya_array_registry[["sparse matrix"]] <- function(handle, version, ...) {
     for (i in seq_along(svt)) {
         idx <- indptr[i] + seq_len(indptr[i+1] - indptr[i])
         if (length(idx)) {
-            svt[[i]] <- list(indices[idx], data[idx])
+            # As of version >= 1, data is first and indices are second.
+            svt[[i]] <- list(data[idx], indices[idx])
         }
     }
 

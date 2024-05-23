@@ -5,7 +5,7 @@ library(Matrix)
 library(SparseArray)
 
 test_that("writing to a sparse matrix works as expected", {
-    for (i in 1:5) {
+    for (i in 1:3) {
         x <- rsparsematrix(100, 20, 0.5)
         if (i == 2) {
             x <- DelayedArray(x) * 1 # force use of the block method.
@@ -34,7 +34,7 @@ test_that("writing to a sparse matrix works as expected", {
 })
 
 test_that("writing to a sparse matrix works with tiny chunks", {
-    for (i in 1:3) {
+    for (i in 1:2) {
         x <- rsparsematrix(100, 20, 0.5)
         if (i == 2) {
             x <- DelayedArray(x) * 1 # force use of the block method.
@@ -69,7 +69,7 @@ get_type <- function(tmp, path) {
 
 test_that("writing to a sparse matrix works with guessed type", {
     set.seed(1000)
-    for (i in 1:4) {
+    for (i in 1:3) {
         core <- function() round(rsparsematrix(100, 20, 0.5))
         if (i == 1) {
             FUN <- function(f) f(core())
@@ -113,7 +113,7 @@ test_that("writing to a sparse matrix works with guessed type", {
 
 test_that("writing to a sparse matrix works with guessed index type for block method", {
     set.seed(1000)
-    for (i in 1:3) {
+    for (i in 1:2) {
         for (big in c(TRUE, FALSE)) {
             nr <- if (big) 100000 else 100
 

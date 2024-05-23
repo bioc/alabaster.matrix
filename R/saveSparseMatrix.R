@@ -149,13 +149,22 @@ setMethod("h5_write_sparse_matrix", "SVT_SparseMatrix", function(x, handle, deta
         start <- 1L
         cached <- 0
         last.cleared <- 0L
-        chunksize <- getAutoBlockLength(type(x))
+
+        tstr <- type(x)
+        chunksize <- getAutoBlockLength(tstr)
+        none <- as(NULL, tstr)
+        one <- as(1, tstr)
+
+        # In versions >= 1L, the indices are the second element of each node.
+        version <- x@.svt_version
+        val.index <- if (version == 1L) 1L else 2L
+        idx.index <- if (version == 1L) 2L else 1L
 
         column.counts <- integer(length(SVT))
         for (i in seq_along(SVT)) {
             y <- SVT[[i]]
             if (!is.null(y)) {
-                column.counts[i] <- length(y[[1]])
+                column.counts[i] <- length(y[[idx.index]])
             }
         }
 
@@ -169,10 +178,15 @@ setMethod("h5_write_sparse_matrix", "SVT_SparseMatrix", function(x, handle, deta
                     y <- targets[[j]]
                     if (is.null(y)) {
                         all.i[[j]] <- integer(0)
-                        all.d[[j]] <- as(NULL, type(x))
+                        all.d[[j]] <- none
                     } else {
-                        all.i[[j]] <- y[[1]]
-                        all.d[[j]] <- y[[2]]
+                        vals <- y[[val.index]]
+                        idxs <- y[[idx.index]]
+                        if (is.null(vals)) { # account for lacunar nodes.
+                            vals <- rep(one, length(idxs))
+                        }
+                        all.i[[j]] <- idxs
+                        all.d[[j]] <- vals
                     }
                 }
 

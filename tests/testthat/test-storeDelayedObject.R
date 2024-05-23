@@ -181,7 +181,8 @@ test_that("sparse matrix saving handles dimnames", {
 
     temp <- saveDelayed(DelayedArray(X))
     roundtrip <- loadDelayed(temp)
-    expect_identical(as(X, "SVT_SparseMatrix"), roundtrip@seed)
+    expect_identical(type(X), type(roundtrip@seed))
+    expect_identical(X, as(roundtrip@seed, "dgCMatrix"))
 })
 
 test_that("sparse matrices are saved to external arrays if requested", {
