@@ -10,6 +10,7 @@
 \alias{path,WrapperArraySeed-method}
 \alias{is_sparse,WrapperArraySeed-method}
 \alias{extract_array,WrapperArraySeed-method}
+\alias{extract_sparse_array,WrapperArraySeed-method}
 \alias{OLD_extract_sparse_array,WrapperArraySeed-method}
 \alias{WrapperArray-class}
 \alias{coerce,WrapperArray,dgCMatrix-method}

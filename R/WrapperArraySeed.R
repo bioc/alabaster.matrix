@@ -20,6 +20,7 @@
 #' path,WrapperArraySeed-method
 #' is_sparse,WrapperArraySeed-method
 #' extract_array,WrapperArraySeed-method
+#' extract_sparse_array,WrapperArraySeed-method
 #' OLD_extract_sparse_array,WrapperArraySeed-method
 #' WrapperArray-class
 #' coerce,WrapperArray,dgCMatrix-method
@@ -63,6 +64,10 @@ setMethod("is_sparse", "WrapperArraySeed", function(x) callGeneric(x@seed))
 #' @export
 #' @importFrom DelayedArray extract_array
 setMethod("extract_array", "WrapperArraySeed", function(x, index) callGeneric(x@seed, index))
+
+#' @export
+#' @importFrom SparseArray extract_sparse_array
+setMethod("extract_sparse_array", "WrapperArraySeed", function(x, index) callGeneric(x@seed, index))
 
 #' @export
 #' @importFrom DelayedArray OLD_extract_sparse_array
