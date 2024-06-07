@@ -7,4 +7,6 @@
 However, note that this was not implemented for the soft-deprecated \code{writeSparseMatrix}, which now errors if such objects are passed in.
 
 \item Added a \code{extract_sparse_array()} method for the \code{WrapperArraySeed} class, for some future-proofing when the seeds eventually make the switch.
+
+\item Bugfix for integer overflow when saving large sparse matrices in \code{saveObject()}.
 }}
