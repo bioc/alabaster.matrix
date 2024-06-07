@@ -146,8 +146,8 @@ setMethod("h5_write_sparse_matrix", "SVT_SparseMatrix", function(x, handle, deta
         column.counts <- integer(ncol(x))
 
     } else {
-        start <- 1L
-        cached <- 0
+        start <- 1 # don't use integers to avoid overflow
+        cached <- 0 # don't use integers to avoid overflow
         last.cleared <- 0L
         chunksize <- getAutoBlockLength(type(x))
 
@@ -227,7 +227,7 @@ setMethod("h5_write_sparse_matrix", "ANY", function(x, handle, details, ...) {
     mhandle <- H5Screate_simple(1)
     on.exit(H5Sclose(mhandle), add=TRUE, after=FALSE)
 
-    start <- 1L
+    start <- 1 # don't use integers to avoid overflow
     pointers <- list(0)
     for (i in seq_along(grid)) {
         block <- read_sparse_block(x, grid[[i]])
