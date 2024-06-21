@@ -29,7 +29,7 @@ readSparseMatrix <- function(path, metadata, ...) {
     name <- "compressed_sparse_matrix"
 
     details <- local({
-        fhandle <- H5Fopen(fpath)
+        fhandle <- H5Fopen(fpath, flags="H5F_ACC_RDONLY")
         on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
         ghandle <- H5Gopen(fhandle, name)
         on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
