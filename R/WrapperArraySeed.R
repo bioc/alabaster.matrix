@@ -21,7 +21,6 @@
 #' is_sparse,WrapperArraySeed-method
 #' extract_array,WrapperArraySeed-method
 #' extract_sparse_array,WrapperArraySeed-method
-#' OLD_extract_sparse_array,WrapperArraySeed-method
 #' WrapperArray-class
 #' coerce,WrapperArray,dgCMatrix-method
 #' coerce,WrapperArraySeed,dgCMatrix-method
@@ -38,7 +37,7 @@
 #' dim(foo)
 #' is_sparse(foo)
 #' extract_array(foo, list(1:10, 1:10))
-#' OLD_extract_sparse_array(foo, list(1:10, 1:10))
+#' extract_sparse_array(foo, list(1:10, 1:10))
 #' 
 #' @name WrapperArraySeed
 NULL
@@ -54,24 +53,20 @@ setMethod("dimnames", "WrapperArraySeed", function(x) callGeneric(x@seed))
 setMethod("chunkdim", "WrapperArraySeed", function(x) callGeneric(x@seed))
 
 #' @export
-#' @importFrom DelayedArray path
+#' @importFrom BiocGenerics path
 setMethod("path", "WrapperArraySeed", function(object, ...) callGeneric(object@seed))
 
 #' @export
-#' @importFrom DelayedArray is_sparse
+#' @importFrom S4Arrays is_sparse
 setMethod("is_sparse", "WrapperArraySeed", function(x) callGeneric(x@seed))
 
 #' @export
-#' @importFrom DelayedArray extract_array
+#' @importFrom S4Arrays extract_array
 setMethod("extract_array", "WrapperArraySeed", function(x, index) callGeneric(x@seed, index))
 
 #' @export
 #' @importFrom SparseArray extract_sparse_array
 setMethod("extract_sparse_array", "WrapperArraySeed", function(x, index) callGeneric(x@seed, index))
-
-#' @export
-#' @importFrom DelayedArray OLD_extract_sparse_array
-setMethod("OLD_extract_sparse_array", "WrapperArraySeed", function(x, index) callGeneric(x@seed, index))
 
 ##############################
 

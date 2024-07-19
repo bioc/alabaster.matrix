@@ -56,7 +56,7 @@
 NULL
 
 #' @export
-#' @importFrom DelayedArray arbind acbind
+#' @importFrom S4Arrays arbind acbind
 AmalgamatedArraySeed <- function(components, along = 1) {
     sample.names <- names(components)
     if (anyDuplicated(sample.names) || any(sample.names == "")) {

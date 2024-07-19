@@ -27,7 +27,6 @@
 #' is_sparse,DelayedMask-method
 #' extract_array,DelayedMask-method
 #' extract_sparse_array,DelayedMask-method
-#' OLD_extract_sparse_array,DelayedMask-method
 #'
 #' @examples
 #' original <- DelayedArray(matrix(rpois(40, lambda=2), ncol=5))
@@ -56,7 +55,7 @@ setMethod("dim", "DelayedMask", function(x) callGeneric(x@seed))
 setMethod("dimnames", "DelayedMask", function(x) callGeneric(x@seed))
 
 #' @export
-#' @importFrom DelayedArray is_sparse
+#' @importFrom S4Arrays is_sparse
 setMethod("is_sparse", "DelayedMask", function(x) {
     if (is.finite(x@placeholder) && x@placeholder == 0) {
         return(FALSE)
@@ -66,7 +65,7 @@ setMethod("is_sparse", "DelayedMask", function(x) {
 })
 
 #' @export
-#' @importFrom DelayedArray extract_array
+#' @importFrom S4Arrays extract_array
 setMethod("extract_array", "DelayedMask", function(x, index) {
     ans <- callGeneric(x@seed, index)
     .replace_missing(ans, x@placeholder)
@@ -79,16 +78,9 @@ setMethod("extract_sparse_array", "DelayedMask", function(x, index) {
     if (is(ans, "COO_SparseArray")) {
         ans@nzdata <- .replace_missing(ans@nzdata, x@placeholder)
     } else {
-        ans@SVT <- .replace_missing_svt(ans@SVT, length(dim(x)) - 1L, x@placeholder)
+        nzidx <- nzwhich(ans)
+        ans[nzidx] <- .replace_missing(ans[nzidx], x@placeholder)
     }
-    ans
-})
-
-#' @export
-#' @importFrom DelayedArray OLD_extract_sparse_array
-setMethod("OLD_extract_sparse_array", "DelayedMask", function(x, index) {
-    ans <- callGeneric(x@seed, index)
-    ans@nzdata <- .replace_missing(ans@nzdata, x@placeholder)
     ans
 })
 
@@ -118,21 +110,3 @@ setMethod("OLD_extract_sparse_array", "DelayedMask", function(x, index) {
     vec
 }
 
-.replace_missing_svt <- function(tree, dim, placeholder) {
-    if (dim == 1L) {
-        for (i in seq_along(tree)) {
-            current <- tree[[i]]
-            if (!is.null(current)) {
-                tree[[i]][[2]] <- .replace_missing(tree[[i]][[2]], placeholder)
-            }
-        }
-    } else {
-        for (i in seq_along(tree)) {
-            current <- tree[[i]]
-            if (!is.null(current)) {
-                tree[[i]] <- .replace_missing_svt(current, dim - 1L, placeholder)
-            }
-        }
-    }
-    tree
-}

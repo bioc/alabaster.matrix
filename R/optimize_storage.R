@@ -100,14 +100,15 @@ setMethod("collect_integer_attributes", "SVT_SparseMatrix", function(x) {
 })
 
 #' @importFrom S4Arrays is_sparse
-#' @importFrom SparseArray nzdata
+#' @importFrom SparseArray nzvals
 setMethod("collect_integer_attributes", "ANY", function(x) {
     output <- list()
 
     if (is_sparse(x)) {
         collated <- blockApply(x, function(y) {
-            out <- .simple_integer_collector(nzdata(y))
-            out$non_zero <- length(nzdata(y))
+            y_nzvals <- nzvals(y)
+            out <- .simple_integer_collector(y_nzvals)
+            out$non_zero <- length(y_nzvals)
             out
         }, as.sparse=TRUE)
         output$non_zero <- aggregate_sum(collated, "non_zero")
@@ -208,14 +209,14 @@ setMethod("collect_float_attributes", "SVT_SparseMatrix", function(x) {
 })
 
 #' @importFrom S4Arrays is_sparse
-#' @importFrom SparseArray nzdata
+#' @importFrom SparseArray nzvals
 setMethod("collect_float_attributes", "ANY", function(x) {
     output <- list()
     if (is_sparse(x)) {
         collated <- blockApply(x, function(y) {
-            nzd <- nzdata(y)
-            out <- collect_double_attributes(nzd)
-            out$non_zero <- length(nzd)
+            y_nzvals <- nzvals(y)
+            out <- collect_double_attributes(y_nzvals)
+            out$non_zero <- length(y_nzvals)
             out
         }, as.sparse=TRUE)
         output$non_zero <- aggregate_sum(collated, "non_zero")
@@ -267,7 +268,7 @@ optimize_float_storage <- function(x) {
         # Fallback that just goes through and pulls out all unique values.
         if (is.null(placeholder)) {
             if (is_sparse(x)) {
-                u <- Reduce(union, blockApply(x, function(y) unique(nzdata(y))))
+                u <- Reduce(union, blockApply(x, function(y) unique(nzvals(y))))
             } else {
                 u <- Reduce(union, blockApply(x, function(y) unique(as.vector(y))))
             }
@@ -364,7 +365,10 @@ setGeneric("collect_boolean_attributes", function(x) standardGeneric("collect_bo
 setMethod("collect_boolean_attributes", "ANY", function(x) {
     output <- list()
     if (is_sparse(x)) {
-        collated <- blockApply(x, function(x) list(missing=anyNA(nzdata(x)), non_zero=length(nzdata(x))), as.sparse=TRUE)
+        collated <- blockApply(x, function(x) {
+            x_nzvals <- nzvals(x)
+            list(missing=anyNA(x_nzvals), non_zero=length(x_nzvals))
+        }, as.sparse=TRUE)
         output$non_zero <- aggregate_sum(collated, "non_zero")
     } else {
         collated <- list(list(missing=anyNA(x)))

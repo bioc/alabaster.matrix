@@ -19,7 +19,7 @@ test_that("writing to a sparse matrix works as expected", {
 
         tmp <- tempfile(fileext=".h5")
         writeSparseMatrix(x, tmp, "csc_matrix")
-        if (i <= 3) { # TODO: SVT matrices don't work with read_sparse_block(), for some reason.
+        if (i <= 3) {
             writeSparseMatrix(x, tmp, "csr_matrix", column=FALSE)
         }
         writeSparseMatrix(x, tmp, "tenx_matrix", tenx=TRUE)
@@ -45,7 +45,7 @@ test_that("writing to a sparse matrix works with tiny chunks", {
         tmp <- tempfile(fileext=".h5")
         setAutoBlockSize(max(dim(x))*8)
         writeSparseMatrix(x, tmp, "csc_matrix")
-        if (i <= 2) { # TODO: uncomment when SVT matrices work with read_sparse_block().
+        if (i <= 2) {
             writeSparseMatrix(x, tmp, "csr_matrix", column=FALSE)
         }
 

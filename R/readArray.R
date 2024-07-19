@@ -29,8 +29,8 @@
 #' @export
 #' @aliases
 #' loadArray
+#' @importFrom BiocGenerics type<-
 #' @importFrom HDF5Array HDF5Array
-#' @importFrom DelayedArray type<-
 readArray <- function(path, metadata, ...) {
     fpath <- file.path(path, "array.h5")
 

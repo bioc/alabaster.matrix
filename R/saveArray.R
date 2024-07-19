@@ -144,7 +144,7 @@ h5_write_array <- function(handle, name, x, type, placeholder, extract.native=NU
 ######### OLD STUFF ##########
 ##############################
 
-#' @importFrom DelayedArray is_sparse
+#' @importFrom S4Arrays is_sparse
 #' @importFrom rhdf5 h5createFile 
 #' @importFrom HDF5Array writeHDF5Array
 #' @importFrom alabaster.base transformVectorForHdf5 addMissingPlaceholderAttributeForHdf5
@@ -258,7 +258,7 @@ setMethod("stageObject", "DelayedArray", function(x, dir, path, child=FALSE) .st
     )
 }
 
-#' @importFrom DelayedArray is_sparse
+#' @importFrom S4Arrays is_sparse
 .stage_any_matrix <- function(x, dir, path, child=FALSE) {
     if (is_sparse(x)) {
         .stage_sparse_matrix(x, dir, path, child=child)

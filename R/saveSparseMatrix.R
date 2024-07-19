@@ -244,9 +244,9 @@ setMethod("h5_write_sparse_matrix", "ANY", function(x, handle, details, ...) {
     start <- 1 # don't use integers to avoid overflow
     pointers <- list(0)
     for (i in seq_along(grid)) {
-        block <- read_sparse_block(x, grid[[i]])
+        block <- read_block_as_sparse(x, grid[[i]])
 
-        nzdex <- nzindex(block)
+        nzdex <- nzwhich(block, arr.ind=TRUE)
         if (layout == "CSC") {
             primary <- nzdex[, 2]
             secondary <- nzdex[, 1]
@@ -256,7 +256,7 @@ setMethod("h5_write_sparse_matrix", "ANY", function(x, handle, details, ...) {
             secondary <- nzdex[, 2]
             ndim <- nrow(block)
         }
-        v <- nzdata(block)
+        v <- nzvals(block)
 
         o <- order(primary, secondary)
         primary <- primary[o]

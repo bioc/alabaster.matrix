@@ -10,7 +10,6 @@
 \alias{is_sparse,DelayedMask-method}
 \alias{extract_array,DelayedMask-method}
 \alias{extract_sparse_array,DelayedMask-method}
-\alias{OLD_extract_sparse_array,DelayedMask-method}
 \title{Delayed masking}
 \usage{
 DelayedMask(x, placeholder)

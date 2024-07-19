@@ -410,7 +410,7 @@ test_that("storage optimization works for sparse objects", {
         } else if (i == 2L) {
             fun <- function(x) as(x, "SVT_SparseMatrix")
         } else {
-            fun <- function(x) DelayedArray(as(x, "SparseArraySeed"))
+            fun <- function(x) DelayedArray(as(x, "COO_SparseArray"))
         }
 
         # Integer.

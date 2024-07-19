@@ -1,7 +1,7 @@
 Package: alabaster.matrix
 Title: Load and Save Artifacts from File
-Version: 1.5.4
-Date: 2024-06-21
+Version: 1.5.5
+Date: 2024-07-16
 Authors@R: person("Aaron", "Lun", role=c("aut", "cre"), email="infinite.monkeys.with.keyboards@gmail.com")
 License: MIT + file LICENSE
 Description: 
@@ -15,9 +15,9 @@ Imports:
     methods,
     BiocGenerics,
     S4Vectors,
-    DelayedArray (>= 0.27.2),
+    DelayedArray (>= 0.31.8),
     S4Arrays,
-    SparseArray,
+    SparseArray (>= 1.5.22),
     rhdf5 (>= 2.47.1),
     HDF5Array,
     Matrix,
@@ -31,7 +31,7 @@ Suggests:
     ResidualMatrix
 LinkingTo: Rcpp
 VignetteBuilder: knitr
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 biocViews:
     DataImport,
     DataRepresentation

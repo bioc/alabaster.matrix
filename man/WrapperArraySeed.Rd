@@ -11,7 +11,6 @@
 \alias{is_sparse,WrapperArraySeed-method}
 \alias{extract_array,WrapperArraySeed-method}
 \alias{extract_sparse_array,WrapperArraySeed-method}
-\alias{OLD_extract_sparse_array,WrapperArraySeed-method}
 \alias{WrapperArray-class}
 \alias{coerce,WrapperArray,dgCMatrix-method}
 \alias{coerce,WrapperArraySeed,dgCMatrix-method}
@@ -39,6 +38,6 @@ foo <- new("FooArraySeed", seed=y, foo_id="FOO.0001")
 dim(foo)
 is_sparse(foo)
 extract_array(foo, list(1:10, 1:10))
-OLD_extract_sparse_array(foo, list(1:10, 1:10))
+extract_sparse_array(foo, list(1:10, 1:10))
 
 }

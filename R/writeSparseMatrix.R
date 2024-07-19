@@ -63,7 +63,9 @@ writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALS
 #' @import methods
 #' @importFrom rhdf5 h5write h5createGroup H5Gopen H5Gopen H5Fopen H5Fclose 
 #' h5writeAttribute h5createDataset h5writeDataset H5Sunlimited H5Gclose
-#' @importFrom DelayedArray colAutoGrid rowAutoGrid read_sparse_block type
+#' @importFrom BiocGenerics type
+#' @importFrom SparseArray read_block_as_sparse
+#' @importFrom DelayedArray colAutoGrid rowAutoGrid
 #' @importClassesFrom Matrix dgCMatrix
 .write_CS_matrix <- function(file, name, mat, chunk_dim = 10000, by_column=TRUE, use_tenx=FALSE, guess_type=TRUE) {
     handle <- H5Fopen(file)
@@ -211,7 +213,8 @@ setGeneric(".extract_sparse_details", function(x) standardGeneric(".extract_spar
 }
 
 #' @importClassesFrom Matrix dsparseMatrix
-#' @importFrom DelayedArray getAutoBlockLength type
+#' @importFrom BiocGenerics type
+#' @importFrom DelayedArray getAutoBlockLength
 setMethod(".extract_sparse_details", "dsparseMatrix", function(x) {
     chunksize <- getAutoBlockLength(type(x))
 
@@ -292,9 +295,9 @@ setMethod(".extract_sparse_details", "DelayedAbind", function(x) {
 #' @importClassesFrom DelayedArray DelayedMatrix
 setMethod(".extract_sparse_details", "DelayedMatrix", function(x) .extract_sparse_details(x@seed))
 
-#' @importFrom DelayedArray nzdata
+#' @importFrom SparseArray nzvals
 .extract_sparse_details_fragment <- function(sparse) {
-    vals <- nzdata(sparse)
+    vals <- nzvals(sparse)
     any.negative <- any(vals < 0, na.rm=TRUE)
     any.nonint <- any(vals != round(vals), na.rm=TRUE)
     extreme.val <- max(abs(vals), na.rm=TRUE)
@@ -344,8 +347,9 @@ setMethod(".dump_column_sparse_matrix", "dgCMatrix", function(x, handle, index.p
 }
 
 #' @importFrom rhdf5 h5writeDataset
+#' @importFrom BiocGenerics type
 #' @importClassesFrom SparseArray SVT_SparseMatrix
-#' @importFrom DelayedArray getAutoBlockSize type 
+#' @importFrom DelayedArray getAutoBlockSize
 setMethod(".dump_column_sparse_matrix", "SVT_SparseMatrix", function(x, handle, index.path, data.path, start, transformer) {
     if (x@.svt_version > 0L) {
         stop("SVT_SparseMatrix objects of version >= 1 are not yet supported")
@@ -407,14 +411,15 @@ setMethod(".dump_column_sparse_matrix", "DelayedAbind", function(x, handle, inde
     unlist(collected)
 })
 
-#' @importFrom DelayedArray colAutoGrid read_sparse_block
+#' @importFrom SparseArray read_block_as_sparse
+#' @importFrom DelayedArray colAutoGrid
 setMethod(".dump_column_sparse_matrix", "ANY", function(x, handle, index.path, data.path, start, transformer) {
     start <- .sanitize_start(start)
     grid <- colAutoGrid(x)
     out <- vector("list", length(grid))
 
     for (i in seq_along(grid)) {
-        block <- read_sparse_block(x, grid[[i]])
+        block <- read_block_as_sparse(x, grid[[i]])
         cout <- .blockwise_sparse_writer(
             block, 
             start, 
@@ -432,14 +437,15 @@ setMethod(".dump_column_sparse_matrix", "ANY", function(x, handle, index.path, d
     unlist(out)
 })
 
-#' @importFrom DelayedArray rowAutoGrid read_sparse_block
+#' @importFrom SparseArray read_block_as_sparse
+#' @importFrom DelayedArray rowAutoGrid
 .dump_row_sparse_matrix <- function(x, handle, index.path, data.path, start, transformer) {
     start <- .sanitize_start(start)
     grid <- rowAutoGrid(x)
     out <- vector("list", length(grid))
 
     for (i in seq_along(grid)) {
-        block <- read_sparse_block(x, grid[[i]])
+        block <- read_block_as_sparse(x, grid[[i]])
         cout <- .blockwise_sparse_writer(
             block, 
             start, 
@@ -457,10 +463,10 @@ setMethod(".dump_column_sparse_matrix", "ANY", function(x, handle, index.path, d
     unlist(out)
 }
 
-#' @importFrom DelayedArray nzindex nzdata
+#' @importFrom SparseArray nzwhich nzvals
 #' @importFrom rhdf5 h5writeDataset
 .blockwise_sparse_writer <- function(block, last, transformer, file, index.path, data.path, by_column) {
-    nzdex <- nzindex(block)
+    nzdex <- nzwhich(block, arr.ind=TRUE)
     if (by_column) {
         primary <- nzdex[, 2]
         secondary <- nzdex[, 1]
@@ -470,7 +476,7 @@ setMethod(".dump_column_sparse_matrix", "ANY", function(x, handle, index.path, d
         secondary <- nzdex[, 2]
         ndim <- nrow(block)
     }
-    v <- nzdata(block)
+    v <- nzvals(block)
 
     o <- order(primary, secondary)
     primary <- primary[o]

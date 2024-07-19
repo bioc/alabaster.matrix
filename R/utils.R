@@ -1,4 +1,4 @@
-#' @importFrom DelayedArray type
+#' @importFrom BiocGenerics type
 to_array_type <- function(x) {
     switch(type(x),
         integer="integer",

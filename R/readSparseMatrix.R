@@ -22,8 +22,8 @@
 #' readObject(dir)
 #' 
 #' @export
+#' @importFrom BiocGenerics type<-
 #' @importFrom HDF5Array H5SparseMatrixSeed
-#' @importFrom DelayedArray type<-
 readSparseMatrix <- function(path, metadata, ...) {
     fpath <- file.path(path, "matrix.h5")
     name <- "compressed_sparse_matrix"

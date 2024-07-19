@@ -34,11 +34,8 @@ test_that("sparse tests for DelayedMask", {
     expect_identical(ref, as.matrix(masked))
     dimnames(ref) <- NULL
 
-#    spmat <- extract_sparse_array(masked, list(NULL, NULL))
-#    expect_identical(ref, as.matrix(spmat))
-
-    spseed <- OLD_extract_sparse_array(masked, list(NULL, NULL))
-    expect_identical(ref, as.matrix(spseed))
+    spmat <- extract_sparse_array(masked, list(NULL, NULL))
+    expect_identical(ref, as.matrix(spmat))
 
     # Behaves correctly if zero is the placeholder.
     masked <- DelayedArray(DelayedMask(original, 0))
