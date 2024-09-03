@@ -728,3 +728,18 @@ test_that("saving of a ResidualMatrix works correctly", {
     expect_false(is(out, "ResidualMatrix"))
     expect_identical(unname(as.matrix(thing2)), unname(as.matrix(out)))
 })
+
+#######################################################
+#######################################################
+
+test_that("alternative function overrides work", {
+    old <- altStoreDelayedObjectFunction()
+    altStoreDelayedObjectFunction(function() "whee")
+    on.exit(altStoreDelayedObjectFunction(old), after=FALSE, add=TRUE)
+    expect_identical(altStoreDelayedObject(), "whee")
+
+    old <- altReloadDelayedObjectFunction()
+    altReloadDelayedObjectFunction(function() "whee")
+    on.exit(altReloadDelayedObjectFunction(old), after=FALSE, add=TRUE)
+    expect_identical(altReloadDelayedObject(), "whee")
+})

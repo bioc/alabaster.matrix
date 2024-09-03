@@ -1,12 +1,36 @@
-#' Store operations in a DelayedArray
+#' Store/reload operations in a DelayedArray
 #'
-#' Store the delayed operations of a \linkS4class{DelayedArray} in a HDF5 file.
+#' Store or reload the delayed operations of a \linkS4class{DelayedArray} in an existing HDF5 file.
 #'
 #' @param x Any of the delayed operation classes from \pkg{DelayedArray}.
 #' @param file String containing the path to a HDF5 file.
 #' @param name String containing the name of the group to save into.
-#' @param ... Arguments to be passed to specific methods.
-#' @return The contents of \code{x} are saved to \code{file}, and \code{NULL} is invisibly returned.
+#' @param ... For \code{storeDelayedObject} and \code{reloadDelayedObject}, additional arguments to be passed to specific methods.
+#'
+#' For \code{altStoreDelayedObject} and \code{altReloadDelayedObject}, arguments to be passed to the alternative functions.
+#' @param store Function (typically a generic) to store delayed operations to file.
+#' This should accept the same arguments as \code{storeDelayedObject}.
+#' @param reload Function to reload delayed operations from file.
+#' This should accept the same arguments as \code{reloadDelayedObject}.
+#'
+#' @section Customization:
+#' Application developers can customize the process of storing/reloading delayed operations by specifying alternative functions in \code{altReloadDelayedObjectFunction} and \code{altStoreDelayedObjectFunction}.
+#' For example, if we want to preserve all delayed operations except for \linkS4class{DelayedSubset},
+#' we could replace \code{storeDelayedObject} with an \code{altStoreDelayedObject} that realizes any DelayedSubset instance into an ordinary matrix.
+#' This is analogous to the overrides for \code{\link{altReadObject}} and \code{\link{altSaveObject}}.
+#' 
+#' @return 
+#' For \code{storeDelayedObject} and \code{altStoreDelayedObject}, the contents of \code{x} are saved to \code{file}, and \code{NULL} is invisibly returned.
+#'
+#' For \code{reloadDelayedObject} and \code{altReloadDelayedObject}, a delayed operation or \linkS4class{DelayedArray} is returned.
+#'
+#' For \code{altStoreDelayedObjectFunction}, the current store function is returned if \code{store} is missing.
+#' Otherwise, \code{store} is set as the current store function and the previous store function is returned.
+#'
+#' For \code{altReloadDelayedObjectFunction}, the current reload function is returned if \code{reload} is missing.
+#' Otherwise, \code{reload} is set as the current reload function and the previous reload function is returned.
+#' 
+#' @param store
 #' 
 #' @author Aaron Lun
 #' @examples
@@ -28,6 +52,9 @@
 #' reloadDelayedObject(fhandle, "YAY")
 #' H5Fclose(fhandle)
 #'
+#' @seealso
+#' \code{\link{saveObject,DelayedArray-method}} and \code{\link{readDelayedArray}}, where these methods are used.
+#'
 #' @aliases
 #' storeDelayedObject
 #' reloadDelayedObject
@@ -45,6 +72,10 @@
 #' storeDelayedObject,array-method
 #' storeDelayedObject,denseMatrix-method
 #' storeDelayedObject,sparseMatrix-method
+#' altStoreDelayedObject
+#' altStoreDelayedObjectFunction
+#' altReloadDelayedObject
+#' altReloadDelayedObjectFunction
 #'
 #' @name storeDelayedObject
 NULL
@@ -363,7 +394,7 @@ setMethod("storeDelayedObject", "DelayedAbind", function(x, handle, name, versio
     h5_write_attribute(shandle, "length", length(x@seeds), type="H5T_NATIVE_UINT32", scalar=TRUE)
 
     for (i in seq_along(x@seeds)) {
-        storeDelayedObject(x@seeds[[i]], shandle, as.character(i - 1L), version=version, ...)
+        altStoreDelayedObject(x@seeds[[i]], shandle, as.character(i - 1L), version=version, ...)
     }
 
     invisible(NULL)
@@ -379,7 +410,7 @@ chihaya_operation_registry[["combine"]] <- function(handle, version, ...) {
 
     seeds <- vector("list", len)
     for (i in seq_len(len)) {
-        seeds[[i]] <- reloadDelayedObject(shandle, as.character(i - 1L), version=version, ...)
+        seeds[[i]] <- altReloadDelayedObject(shandle, as.character(i - 1L), version=version, ...)
     }
 
     if (along == 0L) {
@@ -402,13 +433,13 @@ setMethod("storeDelayedObject", "DelayedAperm", function(x, handle, name, versio
     h5_write_attribute(ghandle, "delayed_operation", "transpose", scalar=TRUE)
 
     h5_write_vector(ghandle, "permutation", x@perm - 1L, type="H5T_NATIVE_UINT32")
-    storeDelayedObject(x@seed, ghandle, "seed", version=version, ...)
+    altStoreDelayedObject(x@seed, ghandle, "seed", version=version, ...)
     invisible(NULL)
 })
 
 #' @import DelayedArray rhdf5
 chihaya_operation_registry[["transpose"]] <- function(handle, version, ...) {
-    x <- reloadDelayedObject(handle, "seed", version=version, ...)
+    x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     perm <- h5_read_vector(handle, "permutation")
     aperm(x, perm + 1L)
 }
@@ -478,15 +509,15 @@ setMethod("storeDelayedObject", "DelayedNaryIsoOp", function(x, handle, name, ve
         stop("expected no additional right arguments for 'DelayedNaryIsoOp'")
     }
 
-    storeDelayedObject(x@seeds[[1]], ghandle, "left")
-    storeDelayedObject(x@seeds[[2]], ghandle, "right")
+    altStoreDelayedObject(x@seeds[[1]], ghandle, "left")
+    altStoreDelayedObject(x@seeds[[2]], ghandle, "right")
     invisible(NULL)
 })
 
 #' @import DelayedArray
 chihaya_load_binary_op <- function(handle, version, logic, ...) {
-    left <- reloadDelayedObject(handle, "left", version=version, ...)
-    right <- reloadDelayedObject(handle, "right", version=version, ...)
+    left <- altReloadDelayedObject(handle, "left", version=version, ...)
+    right <- altReloadDelayedObject(handle, "right", version=version, ...)
     op <- h5_read_vector(handle, "method")
     if (logic) {
         op <- translate_logic_Ops_from_chihaya(op)
@@ -542,13 +573,13 @@ setMethod("storeDelayedObject", "DelayedSetDimnames", function(x, handle, name, 
     h5_write_attribute(ghandle, "delayed_operation", "dimnames", scalar=TRUE)
     save_dimnames_for_chihaya(ghandle, x@dimnames)
 
-    storeDelayedObject(x@seed, ghandle, "seed", version=version, ...)
+    altStoreDelayedObject(x@seed, ghandle, "seed", version=version, ...)
     invisible(NULL)
 })
 
 #' @import rhdf5 DelayedArray
 chihaya_operation_registry[["dimnames"]] <- function(handle, version, ...) {
-    x <- reloadDelayedObject(handle, "seed", version=version, ...)
+    x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     dimnames(x) <- load_dimnames_for_chihaya(handle)
     x
 }
@@ -599,15 +630,15 @@ setMethod("storeDelayedObject", "DelayedSubassign", function(x, handle, name, ve
     h5_write_attribute(ghandle, "delayed_operation", "subset assignment", scalar=TRUE)
 
     save_chihaya_indices(ghandle, "index", x@Lindex) 
-    storeDelayedObject(x@seed, ghandle, "seed", version=version, ...)
-    storeDelayedObject(x@Rvalue, ghandle, "value", version=version, ...)
+    altStoreDelayedObject(x@seed, ghandle, "seed", version=version, ...)
+    altStoreDelayedObject(x@Rvalue, ghandle, "value", version=version, ...)
     invisible(NULL)
 })
 
 #' @import rhdf5 DelayedArray
 chihaya_operation_registry[["subset assignment"]] <- function(handle, version, ...) {
-    x <- reloadDelayedObject(handle, "seed", version=version, ...)
-    value <- reloadDelayedObject(handle, "value", version=version, ...)
+    x <- altReloadDelayedObject(handle, "seed", version=version, ...)
+    value <- altReloadDelayedObject(handle, "value", version=version, ...)
     indices <- load_chihaya_indices(handle, "index")
     do.call(`[<-`, c(list(x=x), indices, list(value=value)))
 } 
@@ -625,13 +656,13 @@ setMethod("storeDelayedObject", "DelayedSubset", function(x, handle, name, versi
     h5_write_attribute(ghandle, "delayed_operation", "subset", scalar=TRUE)
 
     save_chihaya_indices(ghandle, "index", x@index) 
-    storeDelayedObject(x@seed, ghandle, "seed", version=version, ...)
+    altStoreDelayedObject(x@seed, ghandle, "seed", version=version, ...)
     invisible(NULL)
 })
 
 #' @import rhdf5 DelayedArray
 chihaya_operation_registry[["subset"]] <- function(handle, version, ...) {
-    x <- reloadDelayedObject(handle, "seed", version=version, ...)
+    x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     indices <- load_chihaya_indices(handle, "index")
     do.call(`[`, c(list(x), indices, list(drop=FALSE)))
 } 
@@ -765,7 +796,7 @@ chihaya.dump.unary.other <- function(handle, OP) {
 
 save_iso_op_stack <- function(handle, name, OPS, i, seed, version, ...) {
     if (i == 0L) {
-        storeDelayedObject(seed, handle, name, version=version, ...)
+        altStoreDelayedObject(seed, handle, name, version=version, ...)
         return(NULL)
     }
 
@@ -856,12 +887,12 @@ setMethod("storeDelayedObject", "DelayedUnaryIsoOpWithArgs", function(x, handle,
         stop("multi-dimensional 'value' not supported in 'DelayedUnaryIsoOpWithArgs'")
     }
 
-    storeDelayedObject(x@seed, ghandle, "seed", version=version, ...) 
+    altStoreDelayedObject(x@seed, ghandle, "seed", version=version, ...) 
     invisible(NULL)
 })
 
 chihaya_operation_registry[["unary math"]] <- function(handle, version, ...) {
-    x <- reloadDelayedObject(handle, "seed", version=version, ...)
+    x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     method <- h5_read_vector(handle, "method")
     output <- NULL
 
@@ -929,7 +960,7 @@ apply_unary_op_with_value <- function(x, op, side, handle, version) {
 }
 
 chihaya_operation_registry[["unary logic"]] <- function(handle, version, ...) {
-    x <- reloadDelayedObject(handle, "seed", version=version, ...)
+    x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     method <- h5_read_vector(handle, "method")
 
     output <- NULL
@@ -945,21 +976,21 @@ chihaya_operation_registry[["unary logic"]] <- function(handle, version, ...) {
 }
 
 chihaya_operation_registry[["unary comparison"]] <- function(handle, version, ...) {
-    x <- reloadDelayedObject(handle, "seed", version=version, ...)
+    x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     method <- h5_read_vector(handle, "method")
     side <- h5_read_vector(handle, "side")
     apply_unary_op_with_value(x, op=method, side=side, handle=handle, version=version)
 }
 
 chihaya_operation_registry[["unary special check"]] <- function(handle, version, ...) {
-    x <- reloadDelayedObject(handle, "seed", version=version, ...)
+    x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     method <- h5_read_vector(handle, "method")
     method <- sub("_", ".", method)
     get(method, envir=baseenv())(x)
 }
 
 chihaya_operation_registry[["unary arithmetic"]] <- function(handle, version, ...) {
-    x <- reloadDelayedObject(handle, "seed", version=version, ...)
+    x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     method <- h5_read_vector(handle, "method")
     side <- h5_read_vector(handle, "side")
 
@@ -992,9 +1023,9 @@ setMethod("storeDelayedObject", "ANY", function(x, handle, name, version=package
         h5_write_attribute(ghandle, "delayed_type", "operation", scalar=TRUE)
         h5_write_attribute(ghandle, "delayed_operation", "matrix product", scalar=TRUE)
 
-        storeDelayedObject(x@rotation, ghandle, "left_seed", version=version, ...)
+        altStoreDelayedObject(x@rotation, ghandle, "left_seed", version=version, ...)
         h5_write_vector(ghandle, "left_orientation", "N", scalar=TRUE)
-        storeDelayedObject(x@components, ghandle, "right_seed", version=version, ...)
+        altStoreDelayedObject(x@components, ghandle, "right_seed", version=version, ...)
         h5_write_vector(ghandle, "right_orientation", "T", scalar=TRUE)
 
     } else if (is(x, "ResidualMatrixSeed")) {
@@ -1014,16 +1045,16 @@ setMethod("storeDelayedObject", "ANY", function(x, handle, name, version=package
         # Mimic a binary subtraction.
         h5_write_attribute(xhandle, "delayed_operation", "binary arithmetic", scalar=TRUE)
         h5_write_vector(xhandle, "method", "-", scalar=TRUE)
-        storeDelayedObject(x@.matrix, xhandle, "left", version=version, ...)
+        altStoreDelayedObject(x@.matrix, xhandle, "left", version=version, ...)
 
         # Mimic a matrix product.
         rhandle <- H5Gcreate(xhandle, "right")
         on.exit(H5Gclose(rhandle), add=TRUE, after=FALSE)
         h5_write_attribute(rhandle, "delayed_type", "operation", scalar=TRUE)
         h5_write_attribute(rhandle, "delayed_operation", "matrix product", scalar=TRUE)
-        storeDelayedObject(x@Q, rhandle, "left_seed", version=version, ...)
+        altStoreDelayedObject(x@Q, rhandle, "left_seed", version=version, ...)
         h5_write_vector(rhandle, "left_orientation", "N", scalar=TRUE)
-        storeDelayedObject(x@Qty, rhandle, "right_seed", version=version, ...)
+        altStoreDelayedObject(x@Qty, rhandle, "right_seed", version=version, ...)
         h5_write_vector(rhandle, "right_orientation", "N", scalar=TRUE)
 
     } else {
@@ -1059,13 +1090,13 @@ chihaya_array_registry[["custom takane seed array"]] <- function(handle, version
 
 #' @importFrom Matrix t
 chihaya_operation_registry[["matrix product"]] <- function(handle, version, ...) {
-    L <- as.matrix(reloadDelayedObject(handle, "left_seed"))
+    L <- as.matrix(altReloadDelayedObject(handle, "left_seed"))
     Lori <- h5_read_vector(handle, "left_orientation")
     if (length(Lori) == 1 && as.character(Lori) == "T") {
         L <- t(L)
     } 
 
-    R <- as.matrix(reloadDelayedObject(handle, "right_seed"))
+    R <- as.matrix(altReloadDelayedObject(handle, "right_seed"))
     Rori <- h5_read_vector(handle, "right_orientation")
     if (length(Rori) == 1 && as.character(Rori) == "N") {
         R <- t(R)
@@ -1094,7 +1125,7 @@ chihaya_type_hint_registry[["residual matrix"]] <- function(handle, version, ...
 
     stopifnot(identical(optype, "binary arithmetic"))
     stopifnot(identical(h5_read_vector(xhandle, "method"), "-"))
-    .matrix <- reloadDelayedObject(xhandle, "left")
+    .matrix <- altReloadDelayedObject(xhandle, "left")
     .matrix <- .matrix@seed # can't be a DelayedArray inside ResidualMatrix, for various reasons...
 
     rhandle <- H5Gopen(xhandle, "right")
@@ -1104,8 +1135,59 @@ chihaya_type_hint_registry[["residual matrix"]] <- function(handle, version, ...
     stopifnot(identical(h5_read_vector(rhandle, "left_orientation"), "N"))
     stopifnot(identical(h5_read_vector(rhandle, "right_orientation"), "N"))
 
-    Q <- as.matrix(reloadDelayedObject(rhandle, "left_seed", version=version, ...))
-    Qty <- as.matrix(reloadDelayedObject(rhandle, "right_seed", version=version, ...))
+    Q <- as.matrix(altReloadDelayedObject(rhandle, "left_seed", version=version, ...))
+    Qty <- as.matrix(altReloadDelayedObject(rhandle, "right_seed", version=version, ...))
     seed <- new("ResidualMatrixSeed", .matrix = .matrix, Q = Q, Qty = Qty, transposed = transposed)
     DelayedArray(seed)
+}
+
+#######################################################
+#######################################################
+
+#' @export
+altStoreDelayedObjectFunction <- (function() {
+    cur.env <- new.env()
+    cur.env$store <- NULL
+    function(store) {
+        prev <- cur.env$store
+        if (missing(store)) {
+            prev
+        } else {
+            cur.env$store <- store
+            invisible(prev)
+        }
+    }
+})()
+
+#' @export
+altStoreDelayedObject <- function(...) {
+    FUN <- altStoreDelayedObjectFunction()
+    if (is.null(FUN)) {
+        FUN <- storeDelayedObject
+    }
+    FUN(...)
+}
+
+#' @export
+altReloadDelayedObjectFunction <- (function() {
+    cur.env <- new.env()
+    cur.env$reload <- NULL
+    function(reload) {
+        prev <- cur.env$reload
+        if (missing(reload)) {
+            prev
+        } else {
+            cur.env$reload <- reload
+            invisible(prev)
+        }
+    }
+})()
+
+#' @export
+altReloadDelayedObject <- function(...) {
+    FUN <- altReloadDelayedObjectFunction()
+    if (is.null(FUN)) {
+        FUN <- reloadDelayedObject
+    }
+    FUN(...)
 }

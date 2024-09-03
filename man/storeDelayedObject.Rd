@@ -17,7 +17,11 @@
 \alias{storeDelayedObject,array-method}
 \alias{storeDelayedObject,denseMatrix-method}
 \alias{storeDelayedObject,sparseMatrix-method}
-\title{Store operations in a DelayedArray}
+\alias{altStoreDelayedObject}
+\alias{altStoreDelayedObjectFunction}
+\alias{altReloadDelayedObject}
+\alias{altReloadDelayedObjectFunction}
+\title{Store/reload operations in a DelayedArray}
 \arguments{
 \item{x}{Any of the delayed operation classes from \pkg{DelayedArray}.}
 
@@ -25,14 +29,37 @@
 
 \item{name}{String containing the name of the group to save into.}
 
-\item{...}{Arguments to be passed to specific methods.}
+\item{...}{For \code{storeDelayedObject} and \code{reloadDelayedObject}, additional arguments to be passed to specific methods.
+
+For \code{altStoreDelayedObject} and \code{altReloadDelayedObject}, arguments to be passed to the alternative functions.}
+
+\item{reload}{Function to reload delayed operations from file.
+This should accept the same arguments as \code{reloadDelayedObject}.}
+
+\item{store}{}
 }
 \value{
-The contents of \code{x} are saved to \code{file}, and \code{NULL} is invisibly returned.
+For \code{storeDelayedObject} and \code{altStoreDelayedObject}, the contents of \code{x} are saved to \code{file}, and \code{NULL} is invisibly returned.
+
+For \code{reloadDelayedObject} and \code{altReloadDelayedObject}, a delayed operation or \linkS4class{DelayedArray} is returned.
+
+For \code{altStoreDelayedObjectFunction}, the current store function is returned if \code{store} is missing.
+Otherwise, \code{store} is set as the current store function and the previous store function is returned.
+
+For \code{altReloadDelayedObjectFunction}, the current reload function is returned if \code{reload} is missing.
+Otherwise, \code{reload} is set as the current reload function and the previous reload function is returned.
 }
 \description{
-Store the delayed operations of a \linkS4class{DelayedArray} in a HDF5 file.
+Store or reload the delayed operations of a \linkS4class{DelayedArray} in an existing HDF5 file.
 }
+\section{Customization}{
+
+Application developers can customize the process of storing/reloading delayed operations by specifying alternative functions in \code{altReloadDelayedObjectFunction} and \code{altStoreDelayedObjectFunction}.
+For example, if we want to preserve all delayed operations except for \linkS4class{DelayedSubset},
+we could replace \code{storeDelayedObject} with an \code{altStoreDelayedObject} that realizes any DelayedSubset instance into an ordinary matrix.
+This is analogous to the overrides for \code{\link{altReadObject}} and \code{\link{altSaveObject}}.
+}
+
 \examples{
 library(DelayedArray)
 X <- DelayedArray(matrix(runif(100), ncol=20))
@@ -52,6 +79,9 @@ fhandle <- H5Fopen(fpath, "H5F_ACC_RDONLY")
 reloadDelayedObject(fhandle, "YAY")
 H5Fclose(fhandle)
 
+}
+\seealso{
+\code{\link{saveObject,DelayedArray-method}} and \code{\link{readDelayedArray}}, where these methods are used.
 }
 \author{
 Aaron Lun

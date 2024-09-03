@@ -11,4 +11,7 @@ However, note that this was not implemented for the soft-deprecated \code{writeS
 \item Bugfix for integer overflow when saving large sparse matrices in \code{saveObject()}.
 
 \item Open all HDF5 files in read-only mode for \code{readObject()} dispatch functions, to avoid permission-related issues.
+
+\item Added \code{altReloadDelayedObject()}, \code{altStoreDelayedObject()}, and their associated getters/setters,
+to allow applications to override the delayed operation saving/reading process.
 }}
