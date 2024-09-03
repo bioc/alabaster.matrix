@@ -760,3 +760,64 @@ test_that("alternative delayed object function overrides work", {
     on.exit(altReloadDelayedObjectFunction(old), after=FALSE, add=TRUE)
     expect_identical(altReloadDelayedObject(), "whee")
 })
+
+#######################################################
+#######################################################
+
+test_that("external deduplication is done correctly", {
+    dedup.session <- createExternalSeedDedupSession()
+
+    X <- DelayedArray(matrix(rpois(60, 5), ncol=20))
+    temp <- saveDelayed(X, save.external.array=TRUE, external.dedup.session=dedup.session)
+    expect_true(file.exists(file.path(temp, "seeds", 0)))
+    roundtrip <- loadDelayed(temp, custom.takane.realize=TRUE)
+    expect_identical(X, roundtrip)
+
+    Y <- X + 1
+    temp2 <- saveDelayed(Y, save.external.array=TRUE, external.dedup.session=dedup.session, external.dedup.action="symlink")
+    expect_true(file.exists(file.path(temp2, "seeds", 0)))
+    roundtrip <- loadDelayed(temp2, custom.takane.realize=TRUE)
+    expect_equal(Y, roundtrip)
+
+    Z <- DelayedArray(matrix(rpois(30, 5), ncol=5)) # checking that a different array doesn't trigger the deduplicator.
+    temp3 <- saveDelayed(Z, save.external.array=TRUE, external.dedup.session=dedup.session)
+    expect_true(file.exists(file.path(temp3, "seeds", 0)))
+    roundtrip <- loadDelayed(temp3, custom.takane.realize=TRUE)
+    expect_identical(Z, roundtrip)
+
+    if (.Platform$OS.type=="unix") { 
+        expect_identical(Sys.readlink(file.path(temp, "seeds", "0", "OBJECT")), "")
+        expect_true(startsWith(Sys.readlink(file.path(temp2, "seeds", "0", "OBJECT")), "/"))
+        expect_identical(Sys.readlink(file.path(temp3, "seeds", "0", "OBJECT")), "")
+    }
+})
+
+test_that("external deduplication works with relative paths", {
+    dedup.session <- createExternalSeedDedupSession()
+
+    staging <- tempfile()
+    dir.create(staging)
+    pwd <- getwd()
+    on.exit(setwd(pwd), after=FALSE, add=TRUE)
+    setwd(staging)
+
+    X <- DelayedArray(matrix(rpois(60, 5), ncol=20))
+    dir.create("original")
+    saveObject(X + 2, file.path("original", "out"), DelayedArray.preserve.ops=TRUE, 
+        DelayedArray.store.args=list(save.external.array=TRUE, external.dedup.session=dedup.session, external.dedup.action="relsymlink"))
+
+    Y <- X + 1
+    saveObject(Y, "semiclone", DelayedArray.preserve.ops=TRUE, 
+        DelayedArray.store.args=list(save.external.array=TRUE, external.dedup.session=dedup.session, external.dedup.action="relsymlink"))
+
+    # Changing back and seeing whether the loader works.
+    setwd(pwd)
+    expect_true(file.exists(file.path(staging, "semiclone", "seeds", 0)))
+    roundtrip <- loadDelayed(file.path(staging, "semiclone"), custom.takane.realize=TRUE)
+    expect_equal(Y, roundtrip)
+
+    if (.Platform$OS.type=="unix") { 
+        expect_identical(Sys.readlink(file.path(staging, "original", "out", "seeds", "0", "OBJECT")), "")
+        expect_true(startsWith(Sys.readlink(file.path(staging, "semiclone", "seeds", "0", "OBJECT")), "../"))
+    }
+})

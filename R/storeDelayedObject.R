@@ -8,8 +8,8 @@
 #' @param ... For \code{storeDelayedObject} and \code{reloadDelayedObject}, additional arguments to be passed to specific methods.
 #'
 #' For \code{altStoreDelayedObject} and \code{altReloadDelayedObject}, arguments to be passed to the alternative functions.
-#' @param version Package version of the \pkg{chihaya} format to use when loading.
-#' This should be retrieved from the attributes of the outermost group, typically by \code{readDelayedArray}.
+#' @param version Package version of the \pkg{chihaya} format to use when storing or reloading delayed objects.
+#' When reloading, the version should be retrieved from the attributes of the outermost group, typically by \code{readDelayedArray}.
 #' @param reload Function to reload delayed objects from file.
 #' This should accept the same arguments as \code{reloadDelayedObject}.
 #' @param store Function (typically a generic) to store delayed objects to file.
@@ -23,6 +23,10 @@
 #' It may also be \code{NULL} to delete an existing entry in the registry.
 #' @param existing Logical scalar indicating the action to take if a function has already been registered for \code{type} and \code{subtype} -
 #' keep the old or new function, or throw an error.
+#' @param save.external.array Logical scalar indicating whether to save an array-like seed as an external seed,
+#' even if a dedicated \code{storeDelayedObject} method is available.
+#' @param external.dedup.session Session object created by \code{createExternalSeedDedupSession}.
+#' @param external.dedup.action String specifying the deduplication method to use.
 #'
 #' @section Customization:
 #' Developers can easily extend \pkg{alabaster.matrix} to new delayed objects by writing new methods for \code{storeDelayedObject}.
@@ -38,6 +42,31 @@
 #' Extension developers (i.e., those who write new methods for \code{storeDelayedObject} or new functions for \code{reloadDelayedObject})
 #' should generally use \code{altStoreDelayedObject} and \code{altReloadDelayedObject} in their method/funcion bodies.
 #' This ensures that any custom overrides specified by application developers are still respected in the extensions to \pkg{alabaster.matrix}.
+#'
+#' @section External seeds:
+#' Whenever \code{storeDelayedObject} encounters a delayed operation or array-like seed for which it has no methods,
+#' the ANY method will save the delayed object as an \dQuote{external seed}.
+#' The array is saved via \code{\link{saveObject}} into a \code{seeds} directory next to the file corresponding to \code{handle}.
+#' A reference to this external location is then stored in the \code{name} group inside \code{handle}.
+#'
+#' Users can force this behavior for all array-like seeds by passing \code{save.external.array=TRUE} in the \code{...} arguments of \code{storeDelayedObject}.
+#' This instructs \code{storeDelayedObject} to save everything as external seeds, including those arrays for which it has methods.
+#' Doing so can be beneficial to enable deduplication, e.g., when two delayed arrays perform different operations on the same underlying seed.
+#' By saving the seeds externally, file management systems can identify the redundancy to save storage space.
+#'
+#' Advanced users can explicitly deduplicate external seeds by setting \code{save.external.array=TRUE} and passing \code{external.dedup.session=} to \code{storeDelayedObject}.
+#' The \code{external.dedup.session} object is filled up with unique seeds as \code{storeDelayedObject} is called on various DelayedArrays.
+#' Whenever a duplicate seed is encountered, it is not saved again, but is instead linked or copied from the file path associated with the identical external seed.
+#' For example, a new session can be created when saving a SummarizedExperiment to deduplicate seeds across its assays.
+#'
+#' The exact deduplication action can be specified by specifying the \code{external.dedup.action=} parameter.
+#' By default, \code{storeDelayedObject} attempts to create hard links, falling back to copies when a link cannot be created.
+#' Users can instead create copies, symbolic links to absolute paths, or even symbolic links to relative paths
+#' (e.g., to link to a \dQuote{neighboring} assay of the same SummarizedExperiment).
+#'
+#' When external seeds are encountered by \code{reloadDelayedObject}, they are loaded as \linkS4class{ReloadedArray}s (or some variant thereof) by \code{\link{altReadObject}}.
+#' Users can forcibly realize the reloaded seed into memory by passing \code{custom.takane.reload=TRUE} in \code{...} for the \code{reloadDelayedObject} call.
+#' This is occasionally helpful for providing a more faithful roundtrip from file back into memory. 
 #' 
 #' @return 
 #' For \code{storeDelayedObject} and \code{altStoreDelayedObject}, the contents of \code{x} are saved to \code{file}, and \code{NULL} is invisibly returned.
@@ -284,9 +313,10 @@ save_dense_array_for_chihaya <- function(x, handle, name, extract.native, versio
 }
 
 #' @export
+#' @rdname storeDelayedObject
 setMethod("storeDelayedObject", "array", function(x, handle, name, version=package_version("1.1"), save.external.array=FALSE, ...) {
     if (save.external.array) {
-        return(callNextMethod()) # calls the ANY method
+        return(selectMethod("storeDelayedObject", "ANY")(x, handle, name, version=version, save.external.array=save.external.array, ...))
     }
     save_dense_array_for_chihaya(x, handle, name, extract.native=identity, version=version, ...)
 })
@@ -294,7 +324,7 @@ setMethod("storeDelayedObject", "array", function(x, handle, name, version=packa
 #' @export
 setMethod("storeDelayedObject", "denseMatrix", function(x, handle, name, version=package_version("1.1"), save.external.array=FALSE, ...) {
     if (save.external.array) {
-        return(callNextMethod()) # calls the ANY method.
+        return(selectMethod("storeDelayedObject", "ANY")(x, handle, name, version=version, save.external.array=save.external.array, ...))
     } 
 
     extract.native <- NULL
@@ -369,7 +399,7 @@ save_sparse_matrix_for_chihaya <- function(x, handle, name, version=package_vers
 #' @export
 setMethod("storeDelayedObject", "sparseMatrix", function(x, handle, name, version=package_version("1.1"), save.external.array=FALSE, ...) {
     if (save.external.array) {
-        return(callNextMethod()) # calls the ANY method
+        return(selectMethod("storeDelayedObject", "ANY")(x, handle, name, version=version, save.external.array=save.external.array, ...))
     }
     save_sparse_matrix_for_chihaya(x, handle, name, version=version, ...)
 })
@@ -377,7 +407,7 @@ setMethod("storeDelayedObject", "sparseMatrix", function(x, handle, name, versio
 #' @export
 setMethod("storeDelayedObject", "SVT_SparseMatrix", function(x, handle, name, version=package_version("1.1"), save.external.array=FALSE, ...) {
     if (save.external.array) {
-        return(callNextMethod()) # calls the ANY method
+        return(selectMethod("storeDelayedObject", "ANY")(x, handle, name, version=version, save.external.array=save.external.array, ...))
     }
     save_sparse_matrix_for_chihaya(x, handle, name, version=version, ...)
 })
@@ -1056,7 +1086,16 @@ chihaya.registry$operation[["unary arithmetic"]] <- function(handle, version, ..
 
 #' @export
 #' @import rhdf5
-setMethod("storeDelayedObject", "ANY", function(x, handle, name, version=package_version("1.1"), ...) {
+#' @rdname storeDelayedObject
+setMethod("storeDelayedObject", "ANY", function(
+    x,
+    handle,
+    name,
+    version=package_version("1.1"),
+    external.dedup.session=NULL,
+    external.dedup.action=c("link", "copy", "symlink", "relsymlink"), 
+    ...) 
+{
     ghandle <- H5Gcreate(handle, name)
     on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
 
@@ -1105,7 +1144,15 @@ setMethod("storeDelayedObject", "ANY", function(x, handle, name, version=package
         exdir <- file.path(dirname(H5Fget_name(handle)), "seeds")
         dir.create(exdir, showWarnings=FALSE)
         n <- length(list.files(exdir))
-        saveObject(x, file.path(exdir, n), ...)
+        output <- file.path(exdir, n)
+
+        dedup.path <- check_external_seed_in_dedup_session(x, session=external.dedup.session)
+        if (is.null(dedup.path)) {
+            saveObject(x, output, ...)
+        } else {
+            clone_duplicate(dedup.path, output, action=match.arg(external.dedup.action))
+        }
+        add_external_seed_to_dedup_session(x, session=external.dedup.session, path=output)
 
         h5_write_vector(ghandle, "dimensions", dim(x), type="H5T_NATIVE_UINT32", compress=0)
         h5_write_vector(ghandle, "type", to_value_type(type(x)), scalar=TRUE)
@@ -1235,4 +1282,44 @@ altReloadDelayedObject <- function(...) {
         FUN <- reloadDelayedObject
     }
     FUN(...)
+}
+
+#######################################################
+#######################################################
+
+#' @export
+#' @rdname storeDelayedObject
+createExternalSeedDedupSession <- function() {
+    output <- new.env()
+    output$known <- list()
+    output
+}
+
+check_external_seed_in_dedup_session <- function(x, session) {
+    if (is.null(session)) {
+        return(NULL)
+    }
+
+    cls <- as.character(class(x))[1]
+    if (!(cls %in% names(session$known))) {
+        return(NULL)
+    }
+
+    candidates <- session$known[[cls]]
+    for (y in candidates) {
+        if (identical(x, y$value)) {
+            return(y$path)
+        }
+    }
+
+    return(NULL)
+}
+
+add_external_seed_to_dedup_session <- function(x, session, path) {
+    cls <- as.character(class(x))[1]
+    if (!(cls %in% names(session$known))) {
+        session$known[[cls]] <- list()
+    }
+    path <- normalizePath(path, mustWork=TRUE)
+    session$known[[cls]] <- c(session$known[[cls]], list(list(value=x, path=path)))
 }

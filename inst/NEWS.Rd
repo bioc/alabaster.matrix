@@ -19,4 +19,7 @@ to allow applications to override the delayed operation saving/reading process.
 
 \item Added a \code{ReloadedArray.reuse.files="relsymlink"} option to create relative symbolic links to the original array files.
 This is more robust to movement of the original files, provided the new files are moved in the same manner.
+
+\item Enable deduplication of identical seeds across multiple calls to \code{storeDelayedObject()} within a single \dQuote{session}.
+This avoids making multiple copies of the same seed for different DelayedArray instances with the same seeds, e.g., in a SummarizedExperiment.
 }}
