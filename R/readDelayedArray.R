@@ -13,6 +13,8 @@
 #' @seealso
 #' \code{"\link{saveObject,DelayedArray-method}"}, to create the directory and its contents.
 #'
+#' \code{\link{reloadDelayedObject}}, for the methods to reload each delayed operation.
+#'
 #' @author Aaron Lun
 #'
 #' @examples

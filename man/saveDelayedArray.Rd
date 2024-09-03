@@ -45,6 +45,9 @@ saveObject(dmat, dir, delayed.preserve.ops=TRUE)
 list.files(dir)
 
 }
+\seealso{
+\code{\link{storeDelayedObject}}, for the methods to save each delayed operation.
+}
 \author{
 Aaron Lun
 }

@@ -3,15 +3,17 @@
 #' Store or reload the delayed operations of a \linkS4class{DelayedArray} in an existing HDF5 file.
 #'
 #' @param x Any of the delayed operation classes from \pkg{DelayedArray}.
-#' @param file String containing the path to a HDF5 file.
-#' @param name String containing the name of the group to save into.
+#' @param handle An \pkg{rhdf5} handle of a HDF5 file to save into (for \code{storeDelayedObject}) or load from (for \code{reloadDelayedObject}).
+#' @param name String containing the name of the group in \code{file} to save into (for \code{storeDelayedObject}) or load from (for \code{reloadDelayedObject}).
 #' @param ... For \code{storeDelayedObject} and \code{reloadDelayedObject}, additional arguments to be passed to specific methods.
 #'
 #' For \code{altStoreDelayedObject} and \code{altReloadDelayedObject}, arguments to be passed to the alternative functions.
-#' @param store Function (typically a generic) to store delayed operations to file.
-#' This should accept the same arguments as \code{storeDelayedObject}.
+#' @param version Package version of the \pkg{chihaya} format to use when loading.
+#' This should be retrieved from the attributes of the outermost group, typically by \code{readDelayedArray}.
 #' @param reload Function to reload delayed operations from file.
 #' This should accept the same arguments as \code{reloadDelayedObject}.
+#' @param store Function (typically a generic) to store delayed operations to file.
+#' This should accept the same arguments as \code{storeDelayedObject}.
 #'
 #' @section Customization:
 #' Application developers can customize the process of storing/reloading delayed operations by specifying alternative functions in \code{altReloadDelayedObjectFunction} and \code{altStoreDelayedObjectFunction}.
@@ -29,8 +31,6 @@
 #'
 #' For \code{altReloadDelayedObjectFunction}, the current reload function is returned if \code{reload} is missing.
 #' Otherwise, \code{reload} is set as the current reload function and the previous reload function is returned.
-#' 
-#' @param store
 #' 
 #' @author Aaron Lun
 #' @examples
@@ -144,6 +144,7 @@ chihaya_operation_registry <- list()
 chihaya_type_hint_registry <- list()
 
 #' @export
+#' @rdname storeDelayedObject
 reloadDelayedObject <- function(handle, name, version=package_version("1.1"), ...) {
     ghandle <- H5Gopen(handle, name)
     on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
@@ -1145,6 +1146,7 @@ chihaya_type_hint_registry[["residual matrix"]] <- function(handle, version, ...
 #######################################################
 
 #' @export
+#' @rdname storeDelayedObject
 altStoreDelayedObjectFunction <- (function() {
     cur.env <- new.env()
     cur.env$store <- NULL
@@ -1160,6 +1162,7 @@ altStoreDelayedObjectFunction <- (function() {
 })()
 
 #' @export
+#' @rdname storeDelayedObject
 altStoreDelayedObject <- function(...) {
     FUN <- altStoreDelayedObjectFunction()
     if (is.null(FUN)) {
@@ -1169,6 +1172,7 @@ altStoreDelayedObject <- function(...) {
 }
 
 #' @export
+#' @rdname storeDelayedObject
 altReloadDelayedObjectFunction <- (function() {
     cur.env <- new.env()
     cur.env$reload <- NULL
@@ -1184,6 +1188,7 @@ altReloadDelayedObjectFunction <- (function() {
 })()
 
 #' @export
+#' @rdname storeDelayedObject
 altReloadDelayedObject <- function(...) {
     FUN <- altReloadDelayedObjectFunction()
     if (is.null(FUN)) {
