@@ -55,6 +55,10 @@ setMethod("saveObject", "DelayedArray", function(x, path, DelayedArray.dispatch.
 
         fhandle <- H5Fcreate(file.path(path, "array.h5"))
         on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
+
+        if (!("external.save.args" %in% names(DelayedArray.store.args))) {
+            DelayedArray.store.args$external.save.args <- list(...)
+        }
         do.call(storeDelayedObject, c(list(x@seed, handle=fhandle, name="delayed_array"), DelayedArray.store.args))
 
         ghandle <- H5Gopen(fhandle, "delayed_array")

@@ -25,6 +25,7 @@
 #' keep the old or new function, or throw an error.
 #' @param save.external.array Logical scalar indicating whether to save an array-like seed as an external seed,
 #' even if a dedicated \code{storeDelayedObject} method is available.
+#' @param external.save.args Named list of further arguments to pass to \code{\link{altSaveObject}} when saving an external seed.
 #' @param external.dedup.session Session object created by \code{createExternalSeedDedupSession}.
 #' @param external.dedup.action String specifying the deduplication method to use.
 #'
@@ -46,7 +47,7 @@
 #' @section External seeds:
 #' Whenever \code{storeDelayedObject} encounters a delayed operation or array-like seed for which it has no methods,
 #' the ANY method will save the delayed object as an \dQuote{external seed}.
-#' The array is saved via \code{\link{saveObject}} into a \code{seeds} directory next to the file corresponding to \code{handle}.
+#' The array is saved via \code{\link{altSaveObject}} into a \code{seeds} directory next to the file associated with \code{handle}.
 #' A reference to this external location is then stored in the \code{name} group inside \code{handle}.
 #'
 #' Users can force this behavior for all array-like seeds by passing \code{save.external.array=TRUE} in the \code{...} arguments of \code{storeDelayedObject}.
@@ -1092,6 +1093,7 @@ setMethod("storeDelayedObject", "ANY", function(
     handle,
     name,
     version=package_version("1.1"),
+    external.save.args=list(),
     external.dedup.session=NULL,
     external.dedup.action=c("link", "copy", "symlink", "relsymlink"), 
     ...) 
@@ -1148,7 +1150,7 @@ setMethod("storeDelayedObject", "ANY", function(
 
         dedup.path <- check_external_seed_in_dedup_session(x, session=external.dedup.session)
         if (is.null(dedup.path)) {
-            saveObject(x, output, ...)
+            do.call(altSaveObject, c(list(x=x, path=output), external.save.args))
         } else {
             clone_duplicate(dedup.path, output, action=match.arg(external.dedup.action))
         }
@@ -1163,7 +1165,7 @@ setMethod("storeDelayedObject", "ANY", function(
 #' @import alabaster.base rhdf5 DelayedArray
 chihaya.registry$array[["custom takane seed array"]] <- function(handle, version, custom.takane.realize=FALSE, ...) {
     index <- h5_read_vector(handle, "index")
-    out <- readObject(file.path(dirname(H5Fget_name(handle)), "seeds", index), ...)
+    out <- altReadObject(file.path(dirname(H5Fget_name(handle)), "seeds", index), ...)
 
     if (custom.takane.realize) {
         if (is_sparse(out)) {

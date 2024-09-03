@@ -53,6 +53,7 @@ registerReloadDelayedObjectFunction(
   handle,
   name,
   version = package_version("1.1"),
+  external.save.args = list(),
   external.dedup.session = NULL,
   external.dedup.action = c("link", "copy", "symlink", "relsymlink"),
   ...
@@ -97,6 +98,8 @@ keep the old or new function, or throw an error.}
 
 \item{save.external.array}{Logical scalar indicating whether to save an array-like seed as an external seed,
 even if a dedicated \code{storeDelayedObject} method is available.}
+
+\item{external.save.args}{Named list of further arguments to pass to \code{\link{altSaveObject}} when saving an external seed.}
 
 \item{external.dedup.session}{Session object created by \code{createExternalSeedDedupSession}.}
 
@@ -143,7 +146,7 @@ This ensures that any custom overrides specified by application developers are s
 
 Whenever \code{storeDelayedObject} encounters a delayed operation or array-like seed for which it has no methods,
 the ANY method will save the delayed object as an \dQuote{external seed}.
-The array is saved via \code{\link{saveObject}} into a \code{seeds} directory next to the file corresponding to \code{handle}.
+The array is saved via \code{\link{altSaveObject}} into a \code{seeds} directory next to the file associated with \code{handle}.
 A reference to this external location is then stored in the \code{name} group inside \code{handle}.
 
 Users can force this behavior for all array-like seeds by passing \code{save.external.array=TRUE} in the \code{...} arguments of \code{storeDelayedObject}.
