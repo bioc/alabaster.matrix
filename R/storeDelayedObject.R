@@ -1,8 +1,8 @@
-#' Store/reload operations in a DelayedArray
+#' Store/reload a DelayedArray
 #'
-#' Store or reload the delayed operations of a \linkS4class{DelayedArray} in an existing HDF5 file.
+#' Store or reload the delayed operations or array-like seeds of a \linkS4class{DelayedArray} in an existing HDF5 file.
 #'
-#' @param x Any of the delayed operation classes from \pkg{DelayedArray}.
+#' @param x Any of the delayed operation/array classes from \pkg{DelayedArray}.
 #' @param handle An \pkg{rhdf5} handle of a HDF5 file to save into (for \code{storeDelayedObject}) or load from (for \code{reloadDelayedObject}).
 #' @param name String containing the name of the group in \code{file} to save into (for \code{storeDelayedObject}) or load from (for \code{reloadDelayedObject}).
 #' @param ... For \code{storeDelayedObject} and \code{reloadDelayedObject}, additional arguments to be passed to specific methods.
@@ -10,16 +10,34 @@
 #' For \code{altStoreDelayedObject} and \code{altReloadDelayedObject}, arguments to be passed to the alternative functions.
 #' @param version Package version of the \pkg{chihaya} format to use when loading.
 #' This should be retrieved from the attributes of the outermost group, typically by \code{readDelayedArray}.
-#' @param reload Function to reload delayed operations from file.
+#' @param reload Function to reload delayed objects from file.
 #' This should accept the same arguments as \code{reloadDelayedObject}.
-#' @param store Function (typically a generic) to store delayed operations to file.
+#' @param store Function (typically a generic) to store delayed objects to file.
 #' This should accept the same arguments as \code{storeDelayedObject}.
+#' @param type String specifying the type of delayed object, i.e., operation or array.
+#' This corresponds to \code{delayed_type} type in the \pkg{chihaya} attributes.
+#' @param subtype String specifying the subtype of the delayed object, 
+#' This corresponds to \code{delayed_array} or \code{delayed_operation} type (depending on \code{type}) in the \pkg{chihaya} attributes.
+#' @param fun Function to reload a delayed object.
+#' This should accept the same arguments as \code{reloadDelayedObject} and should return a delayed array (if \code{type="array"}) or operation (otherwise).
+#' It may also be \code{NULL} to delete an existing entry in the registry.
+#' @param existing Logical scalar indicating the action to take if a function has already been registered for \code{type} and \code{subtype} -
+#' keep the old or new function, or throw an error.
 #'
 #' @section Customization:
-#' Application developers can customize the process of storing/reloading delayed operations by specifying alternative functions in \code{altReloadDelayedObjectFunction} and \code{altStoreDelayedObjectFunction}.
-#' For example, if we want to preserve all delayed operations except for \linkS4class{DelayedSubset},
+#' Developers can easily extend \pkg{alabaster.matrix} to new delayed objects by writing new methods for \code{storeDelayedObject}.
+#' Methods should save the contents of the delayed object to the HDF5 file in the \pkg{chihaya} format.
+#' Each new store method typically requires a corresponding reloading function to be registered via \code{registerReloadDelayedObjectFunction},
+#' so that \code{reloadDelayedObject} knows how to reconstitute the object from file.
+#' 
+#' Application developers can customize the process of storing/reloading delayed objects by specifying alternative functions in \code{altReloadDelayedObjectFunction} and \code{altStoreDelayedObjectFunction}.
+#' For example, if we want to preserve all delayed objects except for \linkS4class{DelayedSubset},
 #' we could replace \code{storeDelayedObject} with an \code{altStoreDelayedObject} that realizes any DelayedSubset instance into an ordinary matrix.
 #' This is analogous to the overrides for \code{\link{altReadObject}} and \code{\link{altSaveObject}}.
+#'
+#' Extension developers (i.e., those who write new methods for \code{storeDelayedObject} or new functions for \code{reloadDelayedObject})
+#' should generally use \code{altStoreDelayedObject} and \code{altReloadDelayedObject} in their method/funcion bodies.
+#' This ensures that any custom overrides specified by application developers are still respected in the extensions to \pkg{alabaster.matrix}.
 #' 
 #' @return 
 #' For \code{storeDelayedObject} and \code{altStoreDelayedObject}, the contents of \code{x} are saved to \code{file}, and \code{NULL} is invisibly returned.
@@ -55,9 +73,9 @@
 #' @seealso
 #' \code{\link{saveObject,DelayedArray-method}} and \code{\link{readDelayedArray}}, where these methods are used.
 #'
+#' \url{https://artifactdb.github.io/chihaya}, for the file format specification of delayed objects.
+#'
 #' @aliases
-#' storeDelayedObject
-#' reloadDelayedObject
 #' storeDelayedObject,ConstantArraySeed-method
 #' storeDelayedObject,DelayedAbind-method
 #' storeDelayedObject,ANY-method
@@ -72,10 +90,6 @@
 #' storeDelayedObject,array-method
 #' storeDelayedObject,denseMatrix-method
 #' storeDelayedObject,sparseMatrix-method
-#' altStoreDelayedObject
-#' altStoreDelayedObjectFunction
-#' altReloadDelayedObject
-#' altReloadDelayedObjectFunction
 #'
 #' @name storeDelayedObject
 NULL
@@ -139,9 +153,10 @@ save_vector_for_chihaya <- function(handle, name, x, version, scalar) {
 #######################################################
 #######################################################
 
-chihaya_array_registry <- list()
-chihaya_operation_registry <- list()
-chihaya_type_hint_registry <- list()
+chihaya.registry <- new.env()
+chihaya.registry$array <- list()
+chihaya.registry$operation <- list()
+chihaya.registry$type.hint <- list()
 
 #' @export
 #' @rdname storeDelayedObject
@@ -152,8 +167,8 @@ reloadDelayedObject <- function(handle, name, version=package_version("1.1"), ..
     output <- NULL
     if (h5_object_exists(ghandle, "_r_type_hint")) {
         hint <- h5_read_vector(ghandle, "_r_type_hint")
-        if (hint %in% names(chihaya_type_hint_registry)) {
-            FUN <- chihaya_type_hint_registry[[hint]]
+        if (hint %in% names(chihaya.registry$type.hint)) {
+            FUN <- chihaya.registry$type.hint[[hint]]
             output <- tryCatch(
                 FUN(ghandle, version=version, ...),
                 error=function(e) NULL
@@ -165,10 +180,10 @@ reloadDelayedObject <- function(handle, name, version=package_version("1.1"), ..
         objtype <- h5_read_attribute(ghandle, "delayed_type")
         if (objtype == "array") {
             arrtype <- h5_read_attribute(ghandle, "delayed_array")
-            FUN <- chihaya_array_registry[[arrtype]]
+            FUN <- chihaya.registry$array[[arrtype]]
         } else {
             optype <- h5_read_attribute(ghandle, "delayed_operation")
-            FUN <- chihaya_operation_registry[[optype]]
+            FUN <- chihaya.registry$operation[[optype]]
         }
 
         if (is.null(FUN)) {
@@ -181,6 +196,31 @@ reloadDelayedObject <- function(handle, name, version=package_version("1.1"), ..
         output <- DelayedArray(output)
     }
     output
+}
+
+#' @export
+#' @rdname storeDelayedObject
+reloadDelayedObjectFunctionRegistry <- function(type=c("operation", "array")) {
+    type <- match.arg(type)
+    chihaya.registry[[type]]
+}
+
+#' @export
+#' @rdname storeDelayedObject
+registerReloadDelayedObjectFunction <- function(type=c("operation", "array"), subtype, fun, existing=c("old", "new", "error")) {
+    type <- match.arg(type)
+    if (!is.null(fun)) {
+        if (!is.null(chihaya.registry[[type]][[subtype]])) {
+            existing <- match.arg(existing)
+            if (existing == "old") {
+                return(invisible(NULL))
+            } else if (existing == "error") {
+                stop("function has already been registered for object type '", type, "'")
+            }
+        }
+    }
+    chihaya.registry[[type]][[subtype]] <- fun
+    invisible(NULL)
 }
 
 #######################################################
@@ -199,7 +239,7 @@ setMethod("storeDelayedObject", "ConstantArraySeed", function(x, handle, name, v
 })
 
 #' @import rhdf5 DelayedArray
-chihaya_array_registry[["constant array"]] <- function(handle, version, ...) {
+chihaya.registry$array[["constant array"]] <- function(handle, version, ...) {
     dim <- h5_read_vector(handle, "dimensions")
     val <- load_vector_for_chihaya(handle, "value", version=version)
     ConstantArray(dim, value=val)
@@ -265,7 +305,7 @@ setMethod("storeDelayedObject", "denseMatrix", function(x, handle, name, version
 })
 
 #' @import rhdf5 DelayedArray
-chihaya_array_registry[["dense array"]] <- function(handle, version, ...) {
+chihaya.registry$array[["dense array"]] <- function(handle, version, ...) {
     dhandle <- H5Dopen(handle, "data")
     on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
     data <- H5Dread(dhandle)
@@ -343,7 +383,7 @@ setMethod("storeDelayedObject", "SVT_SparseMatrix", function(x, handle, name, ve
 })
 
 #' @import rhdf5 DelayedArray
-chihaya_array_registry[["sparse matrix"]] <- function(handle, version, ...) {
+chihaya.registry$array[["sparse matrix"]] <- function(handle, version, ...) {
     indices <- h5_read_vector(handle, "indices")
     indptr <- h5_read_vector(handle, "indptr")
     data <- load_vector_for_chihaya(handle, "data", version=version)
@@ -402,7 +442,7 @@ setMethod("storeDelayedObject", "DelayedAbind", function(x, handle, name, versio
 })
 
 #' @import alabaster.base rhdf5 DelayedArray
-chihaya_operation_registry[["combine"]] <- function(handle, version, ...) {
+chihaya.registry$operation[["combine"]] <- function(handle, version, ...) {
     shandle <- H5Gopen(handle, "seeds")
     on.exit(H5Gclose(shandle), add=TRUE, after=FALSE)
 
@@ -439,7 +479,7 @@ setMethod("storeDelayedObject", "DelayedAperm", function(x, handle, name, versio
 })
 
 #' @import DelayedArray rhdf5
-chihaya_operation_registry[["transpose"]] <- function(handle, version, ...) {
+chihaya.registry$operation[["transpose"]] <- function(handle, version, ...) {
     x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     perm <- h5_read_vector(handle, "permutation")
     aperm(x, perm + 1L)
@@ -526,9 +566,9 @@ chihaya_load_binary_op <- function(handle, version, logic, ...) {
     get(op, envir=baseenv())(left, right)
 }
 
-chihaya_operation_registry[["binary arithmetic"]] <- function(handle, version, ...) chihaya_load_binary_op(handle, version, logic=FALSE, ...)
-chihaya_operation_registry[["binary comparison"]] <- function(handle, version, ...) chihaya_load_binary_op(handle, version, logic=FALSE, ...)
-chihaya_operation_registry[["binary logic"]] <- function(handle, version, ...) chihaya_load_binary_op(handle=handle, version=version, logic=TRUE, ...)
+chihaya.registry$operation[["binary arithmetic"]] <- function(handle, version, ...) chihaya_load_binary_op(handle, version, logic=FALSE, ...)
+chihaya.registry$operation[["binary comparison"]] <- function(handle, version, ...) chihaya_load_binary_op(handle, version, logic=FALSE, ...)
+chihaya.registry$operation[["binary logic"]] <- function(handle, version, ...) chihaya_load_binary_op(handle=handle, version=version, logic=TRUE, ...)
 
 #######################################################
 #######################################################
@@ -579,7 +619,7 @@ setMethod("storeDelayedObject", "DelayedSetDimnames", function(x, handle, name, 
 })
 
 #' @import rhdf5 DelayedArray
-chihaya_operation_registry[["dimnames"]] <- function(handle, version, ...) {
+chihaya.registry$operation[["dimnames"]] <- function(handle, version, ...) {
     x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     dimnames(x) <- load_dimnames_for_chihaya(handle)
     x
@@ -637,7 +677,7 @@ setMethod("storeDelayedObject", "DelayedSubassign", function(x, handle, name, ve
 })
 
 #' @import rhdf5 DelayedArray
-chihaya_operation_registry[["subset assignment"]] <- function(handle, version, ...) {
+chihaya.registry$operation[["subset assignment"]] <- function(handle, version, ...) {
     x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     value <- altReloadDelayedObject(handle, "value", version=version, ...)
     indices <- load_chihaya_indices(handle, "index")
@@ -662,7 +702,7 @@ setMethod("storeDelayedObject", "DelayedSubset", function(x, handle, name, versi
 })
 
 #' @import rhdf5 DelayedArray
-chihaya_operation_registry[["subset"]] <- function(handle, version, ...) {
+chihaya.registry$operation[["subset"]] <- function(handle, version, ...) {
     x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     indices <- load_chihaya_indices(handle, "index")
     do.call(`[`, c(list(x), indices, list(drop=FALSE)))
@@ -892,7 +932,7 @@ setMethod("storeDelayedObject", "DelayedUnaryIsoOpWithArgs", function(x, handle,
     invisible(NULL)
 })
 
-chihaya_operation_registry[["unary math"]] <- function(handle, version, ...) {
+chihaya.registry$operation[["unary math"]] <- function(handle, version, ...) {
     x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     method <- h5_read_vector(handle, "method")
     output <- NULL
@@ -960,7 +1000,7 @@ apply_unary_op_with_value <- function(x, op, side, handle, version) {
     output
 }
 
-chihaya_operation_registry[["unary logic"]] <- function(handle, version, ...) {
+chihaya.registry$operation[["unary logic"]] <- function(handle, version, ...) {
     x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     method <- h5_read_vector(handle, "method")
 
@@ -976,21 +1016,21 @@ chihaya_operation_registry[["unary logic"]] <- function(handle, version, ...) {
     output
 }
 
-chihaya_operation_registry[["unary comparison"]] <- function(handle, version, ...) {
+chihaya.registry$operation[["unary comparison"]] <- function(handle, version, ...) {
     x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     method <- h5_read_vector(handle, "method")
     side <- h5_read_vector(handle, "side")
     apply_unary_op_with_value(x, op=method, side=side, handle=handle, version=version)
 }
 
-chihaya_operation_registry[["unary special check"]] <- function(handle, version, ...) {
+chihaya.registry$operation[["unary special check"]] <- function(handle, version, ...) {
     x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     method <- h5_read_vector(handle, "method")
     method <- sub("_", ".", method)
     get(method, envir=baseenv())(x)
 }
 
-chihaya_operation_registry[["unary arithmetic"]] <- function(handle, version, ...) {
+chihaya.registry$operation[["unary arithmetic"]] <- function(handle, version, ...) {
     x <- altReloadDelayedObject(handle, "seed", version=version, ...)
     method <- h5_read_vector(handle, "method")
     side <- h5_read_vector(handle, "side")
@@ -1074,7 +1114,7 @@ setMethod("storeDelayedObject", "ANY", function(x, handle, name, version=package
 })
 
 #' @import alabaster.base rhdf5 DelayedArray
-chihaya_array_registry[["custom takane seed array"]] <- function(handle, version, custom.takane.realize=FALSE, ...) {
+chihaya.registry$array[["custom takane seed array"]] <- function(handle, version, custom.takane.realize=FALSE, ...) {
     index <- h5_read_vector(handle, "index")
     out <- readObject(file.path(dirname(H5Fget_name(handle)), "seeds", index), ...)
 
@@ -1090,7 +1130,7 @@ chihaya_array_registry[["custom takane seed array"]] <- function(handle, version
 }
 
 #' @importFrom Matrix t
-chihaya_operation_registry[["matrix product"]] <- function(handle, version, ...) {
+chihaya.registry$operation[["matrix product"]] <- function(handle, version, ...) {
     L <- as.matrix(altReloadDelayedObject(handle, "left_seed"))
     Lori <- h5_read_vector(handle, "left_orientation")
     if (length(Lori) == 1 && as.character(Lori) == "T") {
@@ -1106,7 +1146,7 @@ chihaya_operation_registry[["matrix product"]] <- function(handle, version, ...)
     BiocSingular::LowRankMatrix(L, R)
 }
 
-chihaya_type_hint_registry[["residual matrix"]] <- function(handle, version, ...) {
+chihaya.registry$type.hint[["residual matrix"]] <- function(handle, version, ...) {
     if (!isNamespaceLoaded("ResidualMatrix")) {
         loadNamespace("ResidualMatrix")
     }

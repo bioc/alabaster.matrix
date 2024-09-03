@@ -14,4 +14,6 @@ However, note that this was not implemented for the soft-deprecated \code{writeS
 
 \item Added \code{altReloadDelayedObject()}, \code{altStoreDelayedObject()}, and their associated getters/setters,
 to allow applications to override the delayed operation saving/reading process.
+
+\item Added \code{registerReloadDelayedObjectFunction()} to allow extension developers to register reader functions for new classes.
 }}

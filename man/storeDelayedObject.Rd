@@ -2,7 +2,6 @@
 % Please edit documentation in R/AllGenerics.R, R/storeDelayedObject.R
 \name{storeDelayedObject}
 \alias{storeDelayedObject}
-\alias{reloadDelayedObject}
 \alias{storeDelayedObject,ConstantArraySeed-method}
 \alias{storeDelayedObject,DelayedAbind-method}
 \alias{storeDelayedObject,ANY-method}
@@ -17,15 +16,27 @@
 \alias{storeDelayedObject,array-method}
 \alias{storeDelayedObject,denseMatrix-method}
 \alias{storeDelayedObject,sparseMatrix-method}
-\alias{altStoreDelayedObject}
+\alias{reloadDelayedObject}
+\alias{reloadDelayedObjectFunctionRegistry}
+\alias{registerReloadDelayedObjectFunction}
 \alias{altStoreDelayedObjectFunction}
-\alias{altReloadDelayedObject}
+\alias{altStoreDelayedObject}
 \alias{altReloadDelayedObjectFunction}
-\title{Store/reload operations in a DelayedArray}
+\alias{altReloadDelayedObject}
+\title{Store/reload a DelayedArray}
 \usage{
 storeDelayedObject(x, handle, name, ...)
 
 reloadDelayedObject(handle, name, version = package_version("1.1"), ...)
+
+reloadDelayedObjectFunctionRegistry(type = c("operation", "array"))
+
+registerReloadDelayedObjectFunction(
+  type = c("operation", "array"),
+  subtype,
+  fun,
+  existing = c("old", "new", "error")
+)
 
 altStoreDelayedObjectFunction(store)
 
@@ -36,7 +47,7 @@ altReloadDelayedObjectFunction(reload)
 altReloadDelayedObject(...)
 }
 \arguments{
-\item{x}{Any of the delayed operation classes from \pkg{DelayedArray}.}
+\item{x}{Any of the delayed operation/array classes from \pkg{DelayedArray}.}
 
 \item{handle}{An \pkg{rhdf5} handle of a HDF5 file to save into (for \code{storeDelayedObject}) or load from (for \code{reloadDelayedObject}).}
 
@@ -49,10 +60,23 @@ For \code{altStoreDelayedObject} and \code{altReloadDelayedObject}, arguments to
 \item{version}{Package version of the \pkg{chihaya} format to use when loading.
 This should be retrieved from the attributes of the outermost group, typically by \code{readDelayedArray}.}
 
-\item{store}{Function (typically a generic) to store delayed operations to file.
+\item{type}{String specifying the type of delayed object, i.e., operation or array.
+This corresponds to \code{delayed_type} type in the \pkg{chihaya} attributes.}
+
+\item{subtype}{String specifying the subtype of the delayed object, 
+This corresponds to \code{delayed_array} or \code{delayed_operation} type (depending on \code{type}) in the \pkg{chihaya} attributes.}
+
+\item{fun}{Function to reload a delayed object.
+This should accept the same arguments as \code{reloadDelayedObject} and should return a delayed array (if \code{type="array"}) or operation (otherwise).
+It may also be \code{NULL} to delete an existing entry in the registry.}
+
+\item{existing}{Logical scalar indicating the action to take if a function has already been registered for \code{type} and \code{subtype} -
+keep the old or new function, or throw an error.}
+
+\item{store}{Function (typically a generic) to store delayed objects to file.
 This should accept the same arguments as \code{storeDelayedObject}.}
 
-\item{reload}{Function to reload delayed operations from file.
+\item{reload}{Function to reload delayed objects from file.
 This should accept the same arguments as \code{reloadDelayedObject}.}
 }
 \value{
@@ -67,14 +91,23 @@ For \code{altReloadDelayedObjectFunction}, the current reload function is return
 Otherwise, \code{reload} is set as the current reload function and the previous reload function is returned.
 }
 \description{
-Store or reload the delayed operations of a \linkS4class{DelayedArray} in an existing HDF5 file.
+Store or reload the delayed operations or array-like seeds of a \linkS4class{DelayedArray} in an existing HDF5 file.
 }
 \section{Customization}{
 
-Application developers can customize the process of storing/reloading delayed operations by specifying alternative functions in \code{altReloadDelayedObjectFunction} and \code{altStoreDelayedObjectFunction}.
-For example, if we want to preserve all delayed operations except for \linkS4class{DelayedSubset},
+Developers can easily extend \pkg{alabaster.matrix} to new delayed objects by writing new methods for \code{storeDelayedObject}.
+Methods should save the contents of the delayed object to the HDF5 file in the \pkg{chihaya} format.
+Each new store method typically requires a corresponding reloading function to be registered via \code{registerReloadDelayedObjectFunction},
+so that \code{reloadDelayedObject} knows how to reconstitute the object from file.
+
+Application developers can customize the process of storing/reloading delayed objects by specifying alternative functions in \code{altReloadDelayedObjectFunction} and \code{altStoreDelayedObjectFunction}.
+For example, if we want to preserve all delayed objects except for \linkS4class{DelayedSubset},
 we could replace \code{storeDelayedObject} with an \code{altStoreDelayedObject} that realizes any DelayedSubset instance into an ordinary matrix.
 This is analogous to the overrides for \code{\link{altReadObject}} and \code{\link{altSaveObject}}.
+
+Extension developers (i.e., those who write new methods for \code{storeDelayedObject} or new functions for \code{reloadDelayedObject})
+should generally use \code{altStoreDelayedObject} and \code{altReloadDelayedObject} in their method/funcion bodies.
+This ensures that any custom overrides specified by application developers are still respected in the extensions to \pkg{alabaster.matrix}.
 }
 
 \examples{
@@ -99,6 +132,8 @@ H5Fclose(fhandle)
 }
 \seealso{
 \code{\link{saveObject,DelayedArray-method}} and \code{\link{readDelayedArray}}, where these methods are used.
+
+\url{https://artifactdb.github.io/chihaya}, for the file format specification of delayed objects.
 }
 \author{
 Aaron Lun

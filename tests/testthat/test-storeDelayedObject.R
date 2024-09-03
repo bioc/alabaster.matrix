@@ -732,7 +732,24 @@ test_that("saving of a ResidualMatrix works correctly", {
 #######################################################
 #######################################################
 
-test_that("alternative function overrides work", {
+test_that("readDelayedObject registry works as expected", {
+    expect_false(is.null(reloadDelayedObjectFunctionRegistry("array")[["constant array"]])) 
+
+    expect_null(reloadDelayedObjectFunctionRegistry("array")[["foobar"]]) 
+    registerReloadDelayedObjectFunction("array", "foobar", function(...) "WHEE")
+    expect_identical(reloadDelayedObjectFunctionRegistry("array")[["foobar"]](), "WHEE")
+
+    expect_error(registerReloadDelayedObjectFunction("array", "foobar", function(...) "WHEE", "error"), "already been registered")
+    registerReloadDelayedObjectFunction("array", "foobar", function(...) "FART", "old")
+    expect_identical(reloadDelayedObjectFunctionRegistry("array")[["foobar"]](), "WHEE")
+    registerReloadDelayedObjectFunction("array", "foobar", function(...) "FART", "new")
+    expect_identical(reloadDelayedObjectFunctionRegistry("array")[["foobar"]](), "FART")
+
+    registerReloadDelayedObjectFunction("array", "foobar", NULL)
+    expect_null(reloadDelayedObjectFunctionRegistry("array")[["foobar"]]) 
+})
+
+test_that("alternative delayed object function overrides work", {
     old <- altStoreDelayedObjectFunction()
     altStoreDelayedObjectFunction(function() "whee")
     on.exit(altStoreDelayedObjectFunction(old), after=FALSE, add=TRUE)
