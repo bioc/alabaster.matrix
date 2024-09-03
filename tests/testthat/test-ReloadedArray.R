@@ -41,9 +41,9 @@ test_that("ReloadedArrays store the absolute path", {
 })
 
 test_that("ReloadedArrays save correctly", {
-    tmp <- tempfile()
-    saveObject(obj, tmp, ReloadedArray.reuse.files="none")
-    expect_identical(as.array(readObject(tmp)), arr)
+    original <- tempfile()
+    saveObject(obj, original, ReloadedArray.reuse.files="none")
+    expect_identical(as.array(readObject(original)), arr)
 
     if (.Platform$OS.type=="unix") { 
         # This test just doesn't seem to work on Windows. Either the symlink
@@ -51,7 +51,30 @@ test_that("ReloadedArrays save correctly", {
         tmp <- tempfile()
         saveObject(obj, tmp, ReloadedArray.reuse.files="symlink")
         expect_identical(as.array(readObject(tmp)), arr)
-        expect_identical(normalizePath(Sys.readlink(file.path(tmp, "array.h5"))), normalizePath(file.path(dir, "array.h5")))
+        link.dest <- Sys.readlink(file.path(tmp, "array.h5"))
+        expect_true(startsWith(link.dest, "/"))
+        expect_identical(normalizePath(link.dest), normalizePath(file.path(dir, "array.h5")))
+        expect_identical(as.array(readObject(tmp)), arr)
+
+        # Relative symlinks also work as expected.
+        tmp <- tempfile()
+        saveObject(obj, tmp, ReloadedArray.reuse.files="relsymlink")
+        expect_identical(as.array(readObject(tmp)), arr)
+        link.dest <- Sys.readlink(file.path(tmp, "array.h5"))
+        expect_true(startsWith(link.dest, ".."))
+        expect_identical(normalizePath(file.path(tmp, link.dest)), normalizePath(file.path(dir, "array.h5")))
+        expect_identical(as.array(readObject(tmp)), arr)
+
+        # Trying in a more deeply nested target directory.
+        tmp0 <- tempfile()
+        dir.create(tmp0)
+        tmp <- tempfile(tmpdir=tmp0)
+        saveObject(obj, tmp, ReloadedArray.reuse.files="relsymlink")
+        expect_identical(as.array(readObject(tmp)), arr)
+        link.dest <- Sys.readlink(file.path(tmp, "array.h5"))
+        expect_true(startsWith(link.dest, "../.."))
+        expect_identical(normalizePath(file.path(tmp, link.dest)), normalizePath(file.path(dir, "array.h5")))
+        expect_identical(as.array(readObject(tmp)), arr)
     }
 
     # file.info() doesn't report the inode number so we don't have an easy way

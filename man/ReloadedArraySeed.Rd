@@ -48,6 +48,10 @@ This behavior is controlled by the optional \code{ReloadedArray.reuse.files} opt
 If this fails, we silently fall back to a copy.
 This mode is the default approach.
 \item \code{"symlink"}: create a symbolic link from the files in the original directory to the new \code{path}.
+Each symbolic link refers to an absolute path in the original directory, which is useful when the contents of \code{path} might be moved (but the original directory will not).
+\item \code{"relsymlink"}: create a symbolic link from the files in the original directory to the new \code{path}.
+Each symbolic link refers to an relative path to its corresponding file in the original directory,
+which is useful when both \code{path} and the original directory are moved together, e.g., as they are part of the same parent object like a SummarizedExperiment.
 \item \code{"none"}: ignore existing files and just save the contents by calling \code{"\link{saveObject,DelayedArray-method}"}.
 }
 }

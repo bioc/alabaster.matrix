@@ -16,4 +16,7 @@ However, note that this was not implemented for the soft-deprecated \code{writeS
 to allow applications to override the delayed operation saving/reading process.
 
 \item Added \code{registerReloadDelayedObjectFunction()} to allow extension developers to register reader functions for new classes.
+
+\item Added a \code{ReloadedArray.reuse.files="relsymlink"} option to create relative symbolic links to the original array files.
+This is more robust to movement of the original files, provided the new files are moved in the same manner.
 }}

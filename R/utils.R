@@ -56,3 +56,70 @@ load_names <- function(handle, ndim, group = "names") {
 
     names
 }
+
+path_components <- function(path) {
+    output <- character()
+    while (TRUE) {
+        base <- basename(path)
+        dpath <- dirname(path)
+        output <- c(base, output)
+        if (dpath == path) {
+            break
+        }
+        path <- dpath
+    }
+    output
+}
+
+clone_duplicate <- function(src, dest, action) {
+    dir.create(dest)
+    manifest <- list.files(src, recursive=TRUE)
+
+    if (action == "relsymlink") {
+        # Find relative path from one to the other.
+        src <- normalizePath(src, mustWork=TRUE)
+        src.comp <- path_components(src)
+        src.len <- length(src.comp)
+
+        dest <- normalizePath(dest, mustWork=TRUE)
+        dest.comp <- path_components(dest)
+        dest.len <- length(dest.comp)
+
+        counter <- 0L
+        for (i in seq_len(min(src.len, dest.len))) {
+            if (src.comp[i] != dest.comp[i]) {
+                counter <- i - 1L
+                break
+            }
+        }
+
+        base2base <- do.call(file.path, as.list(c(rep("..", dest.len - counter), src.comp[(counter+1):src.len])))
+        pwd <- getwd()
+        on.exit(setwd(pwd), add=TRUE, after=FALSE)
+        setwd(dest)
+
+        for (y in manifest) {
+            if (!file.symlink(file.path(base2base, y), y)) {
+                stop("failed to link '", y, "' from '", src, "' to '", dest, "'")
+            }
+        }
+        return(NULL)
+    }
+
+    if (action == "link") {
+        fun <- function(from, to) file.link(from, to) || file.copy(from, to)
+        msg <- "copy or link"
+    } else if (action == "copy") {
+        fun <- file.copy
+        msg <- "copy"
+    } else if (action == "symlink") {
+        fun <- file.symlink
+        msg <- "link"
+    }
+
+    for (y in manifest) {
+        if (!fun(file.path(src, y), file.path(dest, y))) {
+            stop("failed to ", msg, " '", y, "' from '", src, "' to '", dest, "'")
+        }
+    }
+}
