@@ -19,7 +19,7 @@ Preserve delayed operations via \pkg{chihaya} when staging a \linkS4class{Delaye
 \details{
 By default, any DelayedArray in \code{\link{stageObject}} will be saved as a new dense array or sparse matrix.
 However, if this option is enabled, DelayedArrays will instead be saved in the \pkg{chihaya} specification,
-where the delayed operations are themselves stored in the HDF5 file (see \url{https://ltla.github.io/chihaya} for details).
+where the delayed operations are themselves stored in the HDF5 file (see \url{https://artifactdb.github.io/chihaya} for details).
 
 The \pkg{chihaya} specification is more complicated to parse but can be helpful in reducing disk usage.
 One simple example is to avoid sparsity-breaking or integer-to-float operations by storing their delayed representations in the file.
