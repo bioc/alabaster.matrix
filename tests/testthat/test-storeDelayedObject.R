@@ -774,9 +774,21 @@ test_that("external deduplication is done correctly", {
     expect_identical(X, roundtrip)
 
     Y <- X + 1
-    temp2 <- saveDelayed(Y, save.external.array=TRUE, external.dedup.session=dedup.session, external.dedup.action="symlink")
-    expect_true(file.exists(file.path(temp2, "seeds", 0)))
-    roundtrip <- loadDelayed(temp2, custom.takane.realize=TRUE)
+    temp2a <- saveDelayed(Y, save.external.array=TRUE, external.dedup.session=dedup.session, external.dedup.action="link")
+    expect_true(file.exists(file.path(temp2a, "seeds", 0)))
+    roundtrip <- loadDelayed(temp2a, custom.takane.realize=TRUE)
+    expect_equal(Y, roundtrip)
+
+    if (.Platform$OS.type=="unix") { 
+        temp2b <- saveDelayed(Y, save.external.array=TRUE, external.dedup.session=dedup.session, external.dedup.action="symlink")
+        expect_true(file.exists(file.path(temp2b, "seeds", 0)))
+        roundtrip <- loadDelayed(temp2b, custom.takane.realize=TRUE)
+        expect_equal(Y, roundtrip)
+    }
+
+    temp2c <- saveDelayed(Y, save.external.array=TRUE, external.dedup.session=dedup.session, external.dedup.action="copy")
+    expect_true(file.exists(file.path(temp2c, "seeds", 0)))
+    roundtrip <- loadDelayed(temp2c, custom.takane.realize=TRUE)
     expect_equal(Y, roundtrip)
 
     Z <- DelayedArray(matrix(rpois(30, 5), ncol=5)) # checking that a different array doesn't trigger the deduplicator.
@@ -787,12 +799,15 @@ test_that("external deduplication is done correctly", {
 
     if (.Platform$OS.type=="unix") { 
         expect_identical(Sys.readlink(file.path(temp, "seeds", "0", "OBJECT")), "")
-        expect_true(startsWith(Sys.readlink(file.path(temp2, "seeds", "0", "OBJECT")), "/"))
+        expect_identical(Sys.readlink(file.path(temp2a, "seeds", "0", "OBJECT")), "")
+        expect_true(startsWith(Sys.readlink(file.path(temp2b, "seeds", "0", "OBJECT")), "/"))
+        expect_identical(Sys.readlink(file.path(temp2c, "seeds", "0", "OBJECT")), "")
         expect_identical(Sys.readlink(file.path(temp3, "seeds", "0", "OBJECT")), "")
     }
 })
 
 test_that("external deduplication works with relative paths", {
+    skip_on_os("windows")
     dedup.session <- createExternalSeedDedupSession()
 
     staging <- tempfile()
@@ -816,8 +831,6 @@ test_that("external deduplication works with relative paths", {
     roundtrip <- loadDelayed(file.path(staging, "semiclone"), custom.takane.realize=TRUE)
     expect_equal(Y, roundtrip)
 
-    if (.Platform$OS.type=="unix") { 
-        expect_identical(Sys.readlink(file.path(staging, "original", "out", "seeds", "0", "OBJECT")), "")
-        expect_true(startsWith(Sys.readlink(file.path(staging, "semiclone", "seeds", "0", "OBJECT")), "../"))
-    }
+    expect_identical(Sys.readlink(file.path(staging, "original", "out", "seeds", "0", "OBJECT")), "")
+    expect_true(startsWith(Sys.readlink(file.path(staging, "semiclone", "seeds", "0", "OBJECT")), "../"))
 })
