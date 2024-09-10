@@ -2,8 +2,8 @@
 
 |Environment|Status|
 |---|---|
-|[BioC-release](https://bioconductor.org/packages/release/bioc/html/alabaster.matrix.html)|[![Release OK](https://bioconductor.org/shields/build/release/bioc/alabaster.matrix.svg)](http://bioconductor.org/checkResults/release/bioc-LATEST/alabaster.matrix/)|
-|[BioC-devel](https://bioconductor.org/packages/devel/bioc/html/alabaster.matrix.html)|[![Devel OK](https://bioconductor.org/shields/build/devel/bioc/alabaster.matrix.svg)](http://bioconductor.org/checkResults/devel/bioc-LATEST/alabaster.matrix/)|
+|[BioC-release](https://bioconductor.org/packages/release/bioc/html/alabaster.matrix.html)|[![Release OK](https://bioconductor.org/shields/build/release/bioc/alabaster.matrix.svg)](https://bioconductor.org/checkResults/release/bioc-LATEST/alabaster.matrix/)|
+|[BioC-devel](https://bioconductor.org/packages/devel/bioc/html/alabaster.matrix.html)|[![Devel OK](https://bioconductor.org/shields/build/devel/bioc/alabaster.matrix.svg)](https://bioconductor.org/checkResults/devel/bioc-LATEST/alabaster.matrix/)|
 
 The **alabaster.matrix** package implements methods for saving and loading matrix- or array-like objects under the **alabaster** framework.
 It provides a language-agnostic method for serializing data in arrays or abstractions thereof.

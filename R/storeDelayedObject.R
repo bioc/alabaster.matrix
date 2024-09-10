@@ -103,7 +103,7 @@
 #' @seealso
 #' \code{\link{saveObject,DelayedArray-method}} and \code{\link{readDelayedArray}}, where these methods are used.
 #'
-#' \url{https://artifactdb.github.io/chihaya}, for the file format specification of delayed objects.
+#' \url{https://artifactdb.github.io/chihaya/}, for the file format specification of delayed objects.
 #'
 #' @aliases
 #' storeDelayedObject,ConstantArraySeed-method
