@@ -1,5 +1,5 @@
 # This tests the saveObject generic for arrays.
-# library(testthat); library(alabaster.matrix); source("test-array.R")
+# library(testthat); library(alabaster.matrix); source("setup.R"); source("test-array.R")
 
 library(DelayedArray)
 experiment <- "rnaseq"
@@ -183,6 +183,13 @@ test_that("saveObject diverts correctly with pristine dense DelayedArrays", {
     tmp <- tempfile()
     expect_warning(saveObject(x, tmp), NA)
     expect_identical(as.array(readObject(tmp)), x@seed)
+})
+
+test_that("saveObject works correctly for unknown dense DelayedArrays", {
+    x <- DelayedArray(new("SuperSeed", dim=c(100L, 50L)))
+    tmp <- tempfile()
+    saveObject(x, tmp)
+    expect_identical(as.array(readObject(tmp)), as.matrix(x))
 })
 
 test_that("saveObject works correctly with dense block processing", {

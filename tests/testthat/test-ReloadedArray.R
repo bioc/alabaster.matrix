@@ -87,3 +87,16 @@ test_that("ReloadedArrays save correctly", {
     saveObject(obj, tmp, ReloadedArray.reuse.files="copy")
     expect_identical(as.array(readObject(tmp)), arr)
 })
+
+test_that("We correctly save ReloadedArraySeeds inside DelayedArrays", {
+    skip_on_os("windows")
+    X <- obj * 10
+
+    temp <- tempfile()
+    saveObject(X, temp, ReloadedArray.reuse.files="symlink", DelayedArray.preserve.ops=TRUE)
+    link.target <- Sys.readlink(file.path(temp, "seeds", "0", "array.h5"))
+    expect_true(file.exists(link.target))
+
+    roundtrip <- readObject(temp)
+    expect_identical(as.array(X), as.array(roundtrip))
+})
