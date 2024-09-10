@@ -331,6 +331,11 @@ test_that("saveObject diverts correctly with pristine sparse DelayedArrays", {
     tmp <- tempfile()
     saveObject(x, tmp)
     expect_identical(as(readObject(tmp), "dgCMatrix"), x@seed)
+
+    # Also works if we ignore the pristine-ness.
+    tmp <- tempfile()
+    saveObject(x, tmp, DelayedArray.dispatch.pristine=FALSE)
+    expect_identical(as(readObject(tmp), "dgCMatrix"), x@seed)
 })
 
 test_that("reading sparse arrays work with non-default NA placeholders", {

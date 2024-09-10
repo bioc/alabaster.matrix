@@ -155,6 +155,34 @@ test_that("saveObject diverts correctly with pristine dense DelayedArrays", {
     tmp <- tempfile()
     saveObject(x, tmp)
     expect_identical(as.array(readObject(tmp)), x@seed)
+
+    # Also works if we ignore the pristine-ness.
+    tmp <- tempfile()
+    saveObject(x, tmp, DelayedArray.dispatch.pristine=FALSE)
+    expect_identical(as.array(readObject(tmp)), x@seed)
+
+    # Works with a custom override.
+    old <- altSaveObjectFunction(function(...) {
+        print("YAY")
+        saveObject(...)
+    })
+    on.exit(altSaveObjectFunction(old), add=TRUE, after=FALSE)
+    tmp <- tempfile()
+    expect_output(saveObject(x, tmp), "YAY")
+    expect_identical(as.array(readObject(tmp)), x@seed)
+
+    altSaveObjectFunction(function(...) {
+        stop("foobar")
+    })
+    tmp <- tempfile()
+    expect_warning(saveObject(x, tmp), "foobar")
+    expect_identical(as.array(readObject(tmp)), x@seed)
+
+    setGeneric("stupidSave", function(x, path, ...) standardGeneric("stupidSave"))
+    altSaveObjectFunction(stupidSave)
+    tmp <- tempfile()
+    expect_warning(saveObject(x, tmp), NA)
+    expect_identical(as.array(readObject(tmp)), x@seed)
 })
 
 test_that("saveObject works correctly with dense block processing", {

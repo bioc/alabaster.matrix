@@ -123,3 +123,29 @@ clone_duplicate <- function(src, dest, action) {
         }
     }
 }
+
+#' @importFrom alabaster.base saveObject
+try_altSaveObject <- function(x, ...) {
+    if (is.null(altSaveObjectFunction())) {
+        fun <- selectMethod(saveObject, signature=class(x), optional=TRUE)
+        if (!is.null(fun)) {
+            fun(x, ...)
+            return(TRUE)
+        }
+        return(FALSE)
+    }
+
+    # We can't use selectMethod() here as we don't know what generic system
+    # is being used by altSaveObject, so we just have to try it out.
+    fail <- try(altSaveObject(x, ...), silent=TRUE)
+    if (!is(fail, "try-error")) {
+        return(TRUE)
+    }
+
+    # If the failure wasn't due to S4 dispatch, we emit a warning.
+    msg <- attr(fail, "condition")
+    if (!startsWith(msg$message, "unable to find an inherited method")) {
+        warning(msg$message)
+    }
+    return(FALSE)
+}

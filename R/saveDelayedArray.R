@@ -37,9 +37,16 @@ NULL
 setMethod("saveObject", "DelayedArray", function(x, path, DelayedArray.dispatch.pristine=TRUE, DelayedArray.preserve.ops=FALSE, DelayedArray.store.args=list(), ...) {
     if (DelayedArray.dispatch.pristine && isPristine(x)) {
         s <- seed(x)
-        fun <- selectMethod("saveObject", class(s), optional=TRUE)
-        if (!is.null(fun)) {
-            return(fun(s, path, ...))
+        out <- try_altSaveObject(
+            s,
+            path=path,
+            DelayedArray.dispatch.pristine=DelayedArray.dispatch.pristine,
+            DelayedArray.preserve.ops=DelayedArray.preserve.ops,
+            DelayedArray.store.args=DelayedArray.store.args,
+            ...
+        )
+        if (out) {
+            return(invisible(NULL))
         }
     }
 
@@ -49,6 +56,7 @@ setMethod("saveObject", "DelayedArray", function(x, path, DelayedArray.dispatch.
         } else {
             .save_array(x, path, ...)
         }
+
     } else {
         dir.create(path)
         saveObjectFile(path, "delayed_array", list(delayed_array=list(version="1.0")))
@@ -57,6 +65,11 @@ setMethod("saveObject", "DelayedArray", function(x, path, DelayedArray.dispatch.
         on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
 
         if (!("external.save.args" %in% names(DelayedArray.store.args))) {
+            # Technically, it seems that we should pass along the various
+            # DelayedArray.* arguments for any call to altSaveObject to save
+            # external seeds. However, there's no point, because any call to
+            # saveObject,DelayedArray-method from storeDelayedObject will not
+            # preserve delayed ops, otherwise we'd get an infinite recursion.
             DelayedArray.store.args$external.save.args <- list(...)
         }
         do.call(storeDelayedObject, c(list(x@seed, handle=fhandle, name="delayed_array"), DelayedArray.store.args))
