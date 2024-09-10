@@ -1150,7 +1150,18 @@ setMethod("storeDelayedObject", "ANY", function(
 
         dedup.path <- check_external_seed_in_dedup_session(x, session=external.dedup.session)
         if (is.null(dedup.path)) {
-            do.call(altSaveObject, c(list(x=x, path=output), external.save.args))
+            # We try twice, once for the seed itself, and then again after
+            # wrapping it in a DelayedArray, just in case the seed has an Array
+            # class with an altSaveObject method. If not, the DelayedArray call
+            # will just fall back to the default dense/sparse savers.
+            exargs <- c(list(x=x, path=output), external.save.args)
+            status <- do.call(try_altSaveObject, exargs)
+            if (!status) {
+                exargs$x <- DelayedArray(exargs$x)
+                exargs$DelayedArray.dispatch.pristine <- FALSE # we only got here if we failed to save the seed itself, so no point trying again.
+                exargs$DelayedArray.preserve.ops <- FALSE # avoid infinite recursion between storeDelayedObject and saveObject.
+                do.call(altSaveObject, exargs)
+            }
         } else {
             clone_duplicate(dedup.path, output, action=match.arg(external.dedup.action))
         }

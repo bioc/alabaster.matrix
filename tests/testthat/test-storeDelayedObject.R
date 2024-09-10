@@ -764,6 +764,15 @@ test_that("alternative delayed object function overrides work", {
 #######################################################
 #######################################################
 
+test_that("external saving handles seeds without saveObject methods", {
+    X <- DelayedArray(new("SuperSeed", dim=c(100L, 50L))) + 100
+
+    temp <- saveDelayed(X)
+    expect_true(file.exists(file.path(temp, "seeds", 0)))
+    roundtrip <- loadDelayed(temp, custom.takane.realize=TRUE)
+    expect_identical(as.matrix(X), as.matrix(roundtrip))
+})
+
 test_that("external deduplication is done correctly", {
     dedup.session <- createExternalSeedDedupSession()
 
