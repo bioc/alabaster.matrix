@@ -34,6 +34,6 @@ readDelayedArray <- function(path, metadata, delayed_array.reload.args=list(), .
     fpath <- file.path(path, "array.h5")
     fhandle <- H5Fopen(fpath, "H5F_ACC_RDONLY")
     on.exit(H5Fclose(fhandle))
-    out <- do.call(reloadDelayedObject, c(list(fhandle, "delayed_array"), delayed_array.reload.args))
+    out <- do.call(altReloadDelayedObject, c(list(fhandle, "delayed_array"), delayed_array.reload.args))
     ReloadedArray(path=path, seed=out)
 }

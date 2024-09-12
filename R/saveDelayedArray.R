@@ -72,7 +72,7 @@ setMethod("saveObject", "DelayedArray", function(x, path, DelayedArray.dispatch.
             # preserve delayed ops, otherwise we'd get an infinite recursion.
             DelayedArray.store.args$external.save.args <- list(...)
         }
-        do.call(storeDelayedObject, c(list(x@seed, handle=fhandle, name="delayed_array"), DelayedArray.store.args))
+        do.call(altStoreDelayedObject, c(list(x@seed, handle=fhandle, name="delayed_array"), DelayedArray.store.args))
 
         ghandle <- H5Gopen(fhandle, "delayed_array")
         on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
