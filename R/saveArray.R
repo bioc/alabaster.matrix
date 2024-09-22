@@ -99,6 +99,7 @@ h5_write_array <- function(handle, name, x, type, placeholder, extract.native=NU
     H5Pset_obj_track_times(phandle, FALSE)
 
     if (!is.null(compress) && compress > 0 && length(x)) {
+        H5Pset_shuffle(phandle) # improve compression by interlacing data elements.
         H5Pset_deflate(phandle, level=compress)
         if (is.null(chunks)) {
             chunks <- getHDF5DumpChunkDim(dim(x))
