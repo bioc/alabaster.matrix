@@ -1,5 +1,5 @@
 # This tests the behavior of the various HDF4-based seeds.
-# library(testthat); library(alabaster.matrix); source("test-storeDelayedObject.R")
+# library(testthat); library(alabaster.matrix); source("setup.R"); source("test-storeDelayedObject.R")
 
 library(DelayedArray)
 library(rhdf5)
@@ -13,7 +13,8 @@ saveDelayed <- function(x, ...) {
 
 loadDelayed <- function(path, ...) {
     raw <- readObject(path, delayed_array.reload.args=list(...))
-    DelayedArray(raw@seed@seed)
+    expect_s4_class(raw, "ReloadedArray")
+    DelayedArray(raw@seed@seed) # removing the ReloadedArray for convenience.
 }
 
 #######################################################
@@ -770,6 +771,20 @@ test_that("external saving handles seeds without saveObject methods", {
     temp <- saveDelayed(X)
     expect_true(file.exists(file.path(temp, "seeds", 0)))
     roundtrip <- loadDelayed(temp, custom.takane.realize=TRUE)
+    expect_identical(as.matrix(X), as.matrix(roundtrip))
+})
+
+test_that("external saving avoids over-nesting of ReloadedArraySeed objects", {
+    X <- DelayedArray(new("SuperSeed", dim=c(100L, 50L)))
+
+    temp <- saveDelayed(X)
+    expect_true(file.exists(file.path(temp, "seeds", 0)))
+    roundtrip <- readObject(temp)
+
+    expect_s4_class(roundtrip@seed, "ReloadedArraySeed")
+    expect_identical(roundtrip@seed@path, normalizePath(temp))
+    expect_false(is(roundtrip@seed@seed, "ReloadedArraySeed"))
+
     expect_identical(as.matrix(X), as.matrix(roundtrip))
 })
 

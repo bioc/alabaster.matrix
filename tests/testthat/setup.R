@@ -12,6 +12,7 @@ expect_identical_without_names <- function(x, y) {
     expect_identical(x, y)
 }
 
+library(DelayedArray)
 setClass("SuperSeed", slots=c(dim="integer"))
 setMethod("type", "SuperSeed", function(x) "integer")
 setMethod("dim", "SuperSeed", function(x) x@dim)

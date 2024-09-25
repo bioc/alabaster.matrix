@@ -35,5 +35,14 @@ readDelayedArray <- function(path, metadata, delayed_array.reload.args=list(), .
     fhandle <- H5Fopen(fpath, "H5F_ACC_RDONLY")
     on.exit(H5Fclose(fhandle))
     out <- do.call(altReloadDelayedObject, c(list(fhandle, "delayed_array"), delayed_array.reload.args))
+
+    # Avoid excessive nesting of ReloadedArrays from altReloadDelayedObject,
+    # as we only need the outermost ReloadedArray to track the 'path'.
+    if (is(out, "ReloadedArray")) {
+        out <- out@seed
+        while (is(out, "ReloadedArraySeed")) {
+            out <- out@seed
+        }
+    }
     ReloadedArray(path=path, seed=out)
 }
