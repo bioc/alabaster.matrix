@@ -86,8 +86,25 @@ setMethod("saveObject", "denseMatrix", function(x, path, ...) {
 ######### INTERNALS ##########
 ##############################
 
-#' @importFrom HDF5Array getHDF5DumpCompressionLevel getHDF5DumpChunkDim HDF5RealizationSink
-#' @importFrom DelayedArray currentViewport blockApply defaultSinkAutoGrid
+#' @importFrom DelayedArray RegularArrayGrid
+create_output_grid <- function(dims, chunks, max.size) {
+    spacings <- chunks
+    for (d in seq_along(spacings)) {
+        leftover <- max.size / prod(spacings)
+        num.chunks <- dims[d] / spacings[d]
+        if (leftover >= num.chunks) {
+            spacings[d] <- dims[d]
+        } else if (leftover >= 2) {
+            spacings[d] <- as.integer(leftover) * spacings[d]
+        } else {
+            break
+        } 
+    }
+    RegularArrayGrid(dims, spacings=spacings)
+}
+
+#' @importFrom HDF5Array getHDF5DumpCompressionLevel getHDF5DumpChunkDim
+#' @importFrom DelayedArray currentViewport blockApply getAutoBlockLength
 #' @importFrom BiocGenerics start
 h5_write_array <- function(handle, name, x, type, placeholder, extract.native=NULL, compress=getHDF5DumpCompressionLevel(), chunks=NULL) {
     shandle <- H5Screate_simple(dim(x))
@@ -125,8 +142,7 @@ h5_write_array <- function(handle, name, x, type, placeholder, extract.native=NU
         # block size. This is because we KNOW that the output is a HDF5 handle
         # where it is expensive to cross chunk boundaries, whereas the input
         # may or may not have such issues.
-        mock_sink <- HDF5RealizationSink(dim(x), chunkdim=chunks, type=type(x))
-        grid <- defaultSinkAutoGrid(mock_sink)
+        grid <- create_output_grid(dim(x), chunks, getAutoBlockLength(type(x)))
 
         blockApply(x, function(y) {
             if (!is.null(placeholder) && anyMissing(y)) {

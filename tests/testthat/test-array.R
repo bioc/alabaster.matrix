@@ -233,3 +233,30 @@ test_that("reading dense arrays work with non-default NA placeholders", {
     ref[ref == first] <- NA
     expect_identical(ref, as.array(readObject(tmp)))
 })
+
+test_that("output grid creation works as expected", {
+    grid <- alabaster.matrix:::create_output_grid(c(100L, 20L), c(5L, 4L), 20)
+    expect_identical(grid@refdim, c(100L, 20L))
+    expect_identical(grid@spacings, c(5L, 4L))
+
+    grid <- alabaster.matrix:::create_output_grid(c(100L, 20L), c(5L, 4L), 30)
+    expect_identical(grid@spacings, c(5L, 4L))
+
+    grid <- alabaster.matrix:::create_output_grid(c(100L, 20L), c(5L, 4L), 60)
+    expect_identical(grid@spacings, c(15L, 4L))
+
+    grid <- alabaster.matrix:::create_output_grid(c(100L, 20L), c(5L, 4L), 400)
+    expect_identical(grid@spacings, c(100L, 4L))
+
+    grid <- alabaster.matrix:::create_output_grid(c(100L, 20L), c(5L, 4L), 800)
+    expect_identical(grid@spacings, c(100L, 8L))
+
+    grid <- alabaster.matrix:::create_output_grid(c(100L, 20L), c(7L, 4L), 200)
+    expect_identical(grid@spacings, c(49L, 4L))
+
+    grid <- alabaster.matrix:::create_output_grid(c(100L, 20L), c(7L, 4L), 400)
+    expect_identical(grid@spacings, c(100L, 4L))
+
+    grid <- alabaster.matrix:::create_output_grid(c(100L, 20L), c(7L, 3L), 30000)
+    expect_identical(grid@spacings, c(100L, 20L))
+})
