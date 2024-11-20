@@ -51,29 +51,26 @@ This process is supported for all base arrays, `r CRANpkg("Matrix")` objects and
 
 # Saving delayed operations
 
-🚧🚧🚧 Oops. Yet to migrate the delayed operations to the new `saveObject`/`readObject` world - stay tuned. 🚧🚧🚧
-
-<!--
-For `DelayedArray`s, we may instead choose to save the delayed operations themselves to file, using the `r Githubpkg("LTLA/chihaya")` package.
+For `DelayedArray`s, we may instead choose to save the delayed operations themselves to file. 
 This creates a HDF5 file following the [**chihaya**](https://ltla.github.io/chihaya) format, containing the delayed operations rather than the results of their evaluation.
 
-```{r, eval=FALSE}
+```{r}
 library(DelayedArray)
 y <- DelayedArray(rsparsematrix(1000, 100, 0.05))
 y <- log1p(abs(y) / 1:100) # adding some delayed ops.
 
-preserveDelayedOperations(TRUE)
-meta <- stageObject(y, tmp, "delayed")
-.writeMetadata(meta, tmp)
+tmp <- tempfile()
+saveObject(y, tmp, DelayedArray.preserve.ops=TRUE)
 
-meta <- acquireMetadata(tmp, "delayed/delayed.h5")
-roundtrip <- loadObject(meta, tmp)
-class(roundtrip)
+# Inspecting the HDF5 file reveals many delayed operations:
+rhdf5::h5ls(file.path(tmp, "array.h5"))
+
+# And indeed, we can recover those same operations.
+readObject(tmp)
 ```
 
-However, it is probably best to avoid preserving delayed operations for file-backed `DelayedArray`s if you want the artifacts to be re-usable on different filesystems.
-For example, `HDF5Array`s will be saved with a reference to an absolute file path, which will not be portable.
--->
+This allows users to avoid evaluation of the operations when saving objects,
+which may improve efficiency, e.g., by avoiding loss of sparsity or casting to a larger type.
 
 # Session information {-}
 
