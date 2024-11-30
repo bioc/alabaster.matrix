@@ -1,6 +1,6 @@
 #' @export
 #' @import methods
-setClass("WrapperArraySeed", contains="VIRTUAL", slots=c(seed="ANY"))
+setClass("WrapperArraySeed", contains=c("VIRTUAL", "DelayedUnaryIsoOp"), slots=c(seed="ANY"))
 
 #' @export
 #' @importClassesFrom DelayedArray DelayedArray
@@ -19,10 +19,10 @@ setClass("AmalgamatedArray", contains="DelayedArray", slots=c(seed = "Amalgamate
 setClass("AmalgamatedMatrix", contains=c("AmalgamatedArray", "DelayedMatrix"))
 
 #' @export
-setClass("ReloadedArraySeed", contains="WrapperArraySeed", slots=c(path="character"))
+setClass("ReloadedArraySeed", contains="DelayedUnaryIsoOp", slots=c(path="character"))
 
 #' @export
-setClass("ReloadedArray", contains="WrapperArray", slots=c(seed="ReloadedArraySeed"))
+setClass("ReloadedArray", contains="DelayedArray", slots=c(seed="ReloadedArraySeed"))
 
 #' @export
 #' @importClassesFrom DelayedArray DelayedMatrix

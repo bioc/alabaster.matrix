@@ -14,7 +14,7 @@
 #' For the constructors, an instance of the \linkS4class{ReloadedArraySeed} or \linkS4class{ReloadedArray}.
 #'
 #' @details
-#' The ReloadedArraySeed is a subclass of the \linkS4class{WrapperArraySeed} and will just forward all operations to the underlying \code{seed}.
+#' The ReloadedArraySeed is a \linkS4class{DelayedUnaryIsoOp} subclass that will just forward all operations to the underlying \code{seed}.
 #' Its main purpose is to track the \code{path} that was originally used to generate \code{seed}, which enables optimizations for methods that need to operate on the files.
 #'
 #' One obvious optimization is the specialization of \code{\link{saveObject}} on ReloadedArray instances.
@@ -51,6 +51,7 @@
 #' coerce,ReloadedArray,ReloadedMatrix-method
 #' coerce,ReloadedMatrix,ReloadedArray-method
 #' path,ReloadedArraySeed-method
+#' path,ReloadedArray-method
 #' saveObject,ReloadedArray-method
 #'
 #' @export
@@ -91,6 +92,9 @@ setAs("ReloadedMatrix", "ReloadedArray", function(from) from)
 
 #' @export
 setMethod("path", "ReloadedArraySeed", function(object, ...) object@path)
+
+#' @export
+setMethod("path", "ReloadedArray", function(object, ...) path(object@seed))
 
 #' @export
 setMethod("saveObject", "ReloadedArray", function(x, path, ReloadedArray.reuse.files="link", ...) {

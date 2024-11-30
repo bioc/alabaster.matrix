@@ -2,42 +2,11 @@
 % Please edit documentation in R/WrapperArraySeed.R
 \name{WrapperArraySeed}
 \alias{WrapperArraySeed}
-\alias{loadWrapperArray}
 \alias{WrapperArraySeed-class}
-\alias{dim,WrapperArraySeed-method}
-\alias{dimnames,WrapperArraySeed-method}
-\alias{chunkdim,WrapperArraySeed-method}
-\alias{path,WrapperArraySeed-method}
-\alias{is_sparse,WrapperArraySeed-method}
-\alias{extract_array,WrapperArraySeed-method}
-\alias{extract_sparse_array,WrapperArraySeed-method}
 \alias{WrapperArray-class}
-\alias{coerce,WrapperArray,dgCMatrix-method}
-\alias{coerce,WrapperArraySeed,dgCMatrix-method}
+\alias{WrapperArray}
+\alias{loadWrapperArray}
 \title{DelayedArray wrapper seed}
 \description{
-The WrapperArraySeed is, as the name suggests, a virtual class for a DelayedArray wrapper seed.
-This forwards most of the DelayedArray generic operations onto an internal seed class,
-typically a \linkS4class{H5SparseMatrixSeed} or \linkS4class{HDF5ArraySeed} objects from \code{\link{readSparseMatrix}} or \code{\link{readArray}}.
-Similarly, the WrapperArray is a virtual DelayedArray class that contains a WrapperArraySeed.
-
-If an \pkg{alabaster} application operates on large arrays, developers may can consider defining concrete subclasses of the WrapperArraySeed (and WrapperArray).
-These subclasses can store application-specific provenance-tracking information that persist throughout the lifetime of the array.
-Such information is most useful for optimizing \code{\link{saveObject}} calls, which can instruct the application to link to the existing array rather than creating a new file.
-Check out the \link{ReloadedArraySeed} class for an example of this approach.
-}
-\examples{
-# Mocking up a concrete wrapper array class, which contains an
-# extra 'foo_id' slot to track the provenance of the data.
-setClass("FooArraySeed", contains="WrapperArraySeed",
-    slots=c(seed="ANY", foo_id="character"))
-
-y <- Matrix::rsparsematrix(1000, 100, 0.01)
-foo <- new("FooArraySeed", seed=y, foo_id="FOO.0001")
-
-dim(foo)
-is_sparse(foo)
-extract_array(foo, list(1:10, 1:10))
-extract_sparse_array(foo, list(1:10, 1:10))
-
+Deprecated, use \link[DelayedArray]{DelayedUnaryIsoOp} instead.
 }

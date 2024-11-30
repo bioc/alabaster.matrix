@@ -10,6 +10,7 @@
 \alias{coerce,ReloadedArray,ReloadedMatrix-method}
 \alias{coerce,ReloadedMatrix,ReloadedArray-method}
 \alias{path,ReloadedArraySeed-method}
+\alias{path,ReloadedArray-method}
 \alias{saveObject,ReloadedArray-method}
 \alias{ReloadedArray}
 \title{Reloaded \pkg{alabaster} array}
@@ -36,7 +37,7 @@ This allows methods to refer to the existing on-disk representation by inspectin
 For example, \code{\link{saveObject}} can just copy/link to the files instead of repeating the saving process.
 }
 \details{
-The ReloadedArraySeed is a subclass of the \linkS4class{WrapperArraySeed} and will just forward all operations to the underlying \code{seed}.
+The ReloadedArraySeed is a \linkS4class{DelayedUnaryIsoOp} subclass that will just forward all operations to the underlying \code{seed}.
 Its main purpose is to track the \code{path} that was originally used to generate \code{seed}, which enables optimizations for methods that need to operate on the files.
 
 One obvious optimization is the specialization of \code{\link{saveObject}} on ReloadedArray instances.
