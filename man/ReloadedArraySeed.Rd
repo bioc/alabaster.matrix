@@ -10,7 +10,6 @@
 \alias{coerce,ReloadedArray,ReloadedMatrix-method}
 \alias{coerce,ReloadedMatrix,ReloadedArray-method}
 \alias{path,ReloadedArraySeed-method}
-\alias{path,ReloadedArray-method}
 \alias{saveObject,ReloadedArray-method}
 \alias{ReloadedArray}
 \title{Reloaded \pkg{alabaster} array}

@@ -1,7 +1,7 @@
 Package: alabaster.matrix
 Title: Load and Save Artifacts from File
-Version: 1.7.3
-Date: 2024-11-30
+Version: 1.7.4
+Date: 2024-12-02
 Authors@R: person("Aaron", "Lun", role=c("aut", "cre"), email="infinite.monkeys.with.keyboards@gmail.com")
 License: MIT + file LICENSE
 Description: 
@@ -15,7 +15,7 @@ Imports:
     methods,
     BiocGenerics,
     S4Vectors,
-    DelayedArray (>= 0.31.8),
+    DelayedArray (>= 0.33.3),
     S4Arrays,
     SparseArray (>= 1.5.22),
     rhdf5 (>= 2.47.1),

@@ -51,7 +51,6 @@
 #' coerce,ReloadedArray,ReloadedMatrix-method
 #' coerce,ReloadedMatrix,ReloadedArray-method
 #' path,ReloadedArraySeed-method
-#' path,ReloadedArray-method
 #' saveObject,ReloadedArray-method
 #'
 #' @export
@@ -92,9 +91,6 @@ setAs("ReloadedMatrix", "ReloadedArray", function(from) from)
 
 #' @export
 setMethod("path", "ReloadedArraySeed", function(object, ...) object@path)
-
-#' @export
-setMethod("path", "ReloadedArray", function(object, ...) path(object@seed))
 
 #' @export
 setMethod("saveObject", "ReloadedArray", function(x, path, ReloadedArray.reuse.files="link", ...) {
