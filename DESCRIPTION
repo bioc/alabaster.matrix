@@ -1,7 +1,7 @@
 Package: alabaster.matrix
 Title: Load and Save Artifacts from File
-Version: 1.13.0
-Date: 2025-03-04
+Version: 1.13.1
+Date: 2026-08-05
 Authors@R: person("Aaron", "Lun", role=c("aut", "cre"), email="infinite.monkeys.with.keyboards@gmail.com")
 License: MIT + file LICENSE
 Description: 
@@ -31,8 +31,8 @@ Suggests:
     ResidualMatrix
 LinkingTo: Rcpp
 VignetteBuilder: knitr
-RoxygenNote: 7.3.2
 Encoding: UTF-8
 biocViews:
     DataImport,
     DataRepresentation
+Config/roxygen2/version: 8.0.0
