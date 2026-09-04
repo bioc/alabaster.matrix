@@ -2,6 +2,13 @@
 \title{alabaster.matrix News}
 \encoding{UTF-8}
 
+\section{Version 1.14.0}{\itemize{
+\item Add an explicit \code{saveObject()} method for HDF5Arrays, to avoid creating an unnecessary no-op file via the DelayedArray method.
+
+\item Officially deprecate \code{stageObject()} and \code{loadObject()} in favor of \code{saveObject()} and \code{readObject()}.
+This includes related functions like \code{writeSparseMatrix()}, \code{.createRawArraySeed()}, etc.
+}}
+
 \section{Version 1.8.0}{\itemize{
 \item Deprecated the WrapperArraySeed in favor of direct inheritance from DelayedUnaryIsoOp.
 
