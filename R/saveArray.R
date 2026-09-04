@@ -220,6 +220,7 @@ h5_write_array <- function(handle, name, x, type, placeholder, extract.native=NU
 #' @importFrom HDF5Array writeHDF5Array
 #' @importFrom alabaster.base transformVectorForHdf5 addMissingPlaceholderAttributeForHdf5
 .stage_array <- function(x, dir, path, child=FALSE, .version=2) {
+    .Deprecated(old = "stageObject", new = "saveObject")
     dir.create(file.path(dir, path), showWarnings=FALSE)
     xpath <- paste0(path, "/array.h5")
     ofile <- file.path(dir, xpath)

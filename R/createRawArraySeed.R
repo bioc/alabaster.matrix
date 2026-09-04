@@ -47,6 +47,7 @@
 #' @importFrom rhdf5 h5read h5readAttributes
 #' @importFrom alabaster.base loadObject acquireFile acquireMetadata
 .createRawArraySeed <- function(info, project, names = TRUE) {
+    .Deprecated()
     path <- acquireFile(project, info$path)
 
     if ("hdf5_delayed_array" %in% names(info)) {

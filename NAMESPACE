@@ -15,7 +15,6 @@ export(componentNames)
 export(createExternalSeedDedupSession)
 export(extractComponents)
 export(loadArray)
-export(loadWrapperArray)
 export(preserveDelayedOperations)
 export(readArray)
 export(readDelayedArray)
@@ -33,8 +32,6 @@ exportClasses(DelayedMask)
 exportClasses(ReloadedArray)
 exportClasses(ReloadedArraySeed)
 exportClasses(ReloadedMatrix)
-exportClasses(WrapperArray)
-exportClasses(WrapperArraySeed)
 exportMethods(DelayedArray)
 exportMethods(dim)
 exportMethods(dimnames)
@@ -61,60 +58,70 @@ importClassesFrom(Matrix,Matrix)
 importClassesFrom(Matrix,dgCMatrix)
 importClassesFrom(Matrix,dsparseMatrix)
 importClassesFrom(SparseArray,SVT_SparseMatrix)
-importFrom(BiocGenerics,"type<-")
-importFrom(BiocGenerics,path)
-importFrom(BiocGenerics,start)
-importFrom(BiocGenerics,type)
-importFrom(DelayedArray,DelayedArray)
-importFrom(DelayedArray,RegularArrayGrid)
-importFrom(DelayedArray,blockApply)
-importFrom(DelayedArray,colAutoGrid)
-importFrom(DelayedArray,currentViewport)
-importFrom(DelayedArray,getAutoBlockLength)
-importFrom(DelayedArray,getAutoBlockSize)
-importFrom(DelayedArray,isPristine)
-importFrom(DelayedArray,matrixClass)
-importFrom(DelayedArray,new_DelayedArray)
-importFrom(DelayedArray,rowAutoGrid)
-importFrom(DelayedArray,seed)
-importFrom(HDF5Array,H5SparseMatrixSeed)
-importFrom(HDF5Array,HDF5Array)
-importFrom(HDF5Array,HDF5ArraySeed)
-importFrom(HDF5Array,getHDF5DumpChunkDim)
-importFrom(HDF5Array,getHDF5DumpCompressionLevel)
-importFrom(HDF5Array,writeHDF5Array)
+importFrom(BiocGenerics,
+  "type<-",
+  path,
+  start,
+  type
+)
+importFrom(DelayedArray,
+  DelayedArray,
+  RegularArrayGrid,
+  blockApply,
+  colAutoGrid,
+  currentViewport,
+  getAutoBlockLength,
+  getAutoBlockSize,
+  isPristine,
+  matrixClass,
+  new_DelayedArray,
+  rowAutoGrid,
+  seed
+)
+importFrom(HDF5Array,
+  H5SparseMatrixSeed,
+  HDF5Array,
+  HDF5ArraySeed,
+  getHDF5DumpChunkDim,
+  getHDF5DumpCompressionLevel,
+  writeHDF5Array
+)
 importFrom(Matrix,t)
 importFrom(Rcpp,sourceCpp)
-importFrom(S4Arrays,acbind)
-importFrom(S4Arrays,arbind)
-importFrom(S4Arrays,extract_array)
-importFrom(S4Arrays,is_sparse)
+importFrom(S4Arrays,
+  acbind,
+  arbind,
+  extract_array,
+  is_sparse
+)
 importFrom(S4Vectors,new2)
-importFrom(SparseArray,extract_sparse_array)
-importFrom(SparseArray,nzvals)
-importFrom(SparseArray,nzwhich)
-importFrom(SparseArray,read_block_as_sparse)
-importFrom(alabaster.base,.loadObject)
-importFrom(alabaster.base,.stageObject)
-importFrom(alabaster.base,.writeMetadata)
-importFrom(alabaster.base,acquireFile)
-importFrom(alabaster.base,acquireMetadata)
-importFrom(alabaster.base,addMissingPlaceholderAttributeForHdf5)
-importFrom(alabaster.base,loadObject)
-importFrom(alabaster.base,saveObject)
-importFrom(alabaster.base,transformVectorForHdf5)
-importFrom(rhdf5,H5Fclose)
-importFrom(rhdf5,H5Fopen)
-importFrom(rhdf5,H5Gclose)
-importFrom(rhdf5,H5Gopen)
-importFrom(rhdf5,H5Sunlimited)
-importFrom(rhdf5,h5createDataset)
-importFrom(rhdf5,h5createFile)
-importFrom(rhdf5,h5createGroup)
-importFrom(rhdf5,h5ls)
-importFrom(rhdf5,h5read)
-importFrom(rhdf5,h5readAttributes)
-importFrom(rhdf5,h5write)
-importFrom(rhdf5,h5writeAttribute)
-importFrom(rhdf5,h5writeDataset)
+importFrom(SparseArray,
+  extract_sparse_array,
+  nzvals,
+  nzwhich,
+  read_block_as_sparse
+)
+importFrom(alabaster.base,
+  .loadObject,
+  .stageObject,
+  .writeMetadata,
+  acquireFile,
+  acquireMetadata,
+  addMissingPlaceholderAttributeForHdf5,
+  loadObject,
+  saveObject,
+  transformVectorForHdf5
+)
+importFrom(rhdf5,
+  H5Fclose,
+  H5Fopen,
+  H5Gopen,
+  h5createFile,
+  h5createGroup,
+  h5ls,
+  h5read,
+  h5readAttributes,
+  h5write,
+  h5writeDataset
+)
 useDynLib(alabaster.matrix, .registration=TRUE)

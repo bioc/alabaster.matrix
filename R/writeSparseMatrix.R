@@ -53,6 +53,7 @@
 #' @export
 #' @importFrom rhdf5 h5createGroup h5createFile
 writeSparseMatrix <- function(x, file, name, chunk=10000, column=TRUE, tenx=FALSE, guess.integer=TRUE) {
+    .Deprecated(new = "saveObject")
     if (!file.exists(file)) {
         h5createFile(file)
     }

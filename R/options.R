@@ -30,6 +30,7 @@ staging.options$recycle.hdf5 <- FALSE
 #' 
 #' @export
 preserveDelayedOperations <- function(preserve) {
+    .Deprecated()
     prev <- staging.options$preserve.delayed
     if (missing(preserve)) {
         prev
@@ -70,6 +71,7 @@ preserveDelayedOperations <- function(preserve) {
 #' 
 #' @export
 recycleHdf5Files <- function(recycle) {
+    .Deprecated()
     prev <- staging.options$recycle.hdf5
     if (missing(recycle)) {
         prev

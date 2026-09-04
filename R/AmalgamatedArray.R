@@ -58,6 +58,7 @@ NULL
 #' @export
 #' @importFrom S4Arrays arbind acbind
 AmalgamatedArraySeed <- function(components, along = 1) {
+    .Deprecated()
     sample.names <- names(components)
     if (anyDuplicated(sample.names) || any(sample.names == "")) {
         stop("sample names must be unique and non-empty in a AmalgamatedArraySeed")

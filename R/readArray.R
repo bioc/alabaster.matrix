@@ -95,6 +95,7 @@ readArray <- function(path, metadata, ...) {
 
 #' @export
 loadArray <- function(info, project) {
+    .Deprecated(old = "loadArray", new = "readArray")
     seed <- .createRawArraySeed(info, project=project, names=TRUE)
     DelayedArray(seed)
 }

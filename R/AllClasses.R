@@ -1,12 +1,4 @@
 #' @export
-#' @import methods
-setClass("WrapperArraySeed", contains=c("VIRTUAL", "DelayedUnaryIsoOp"), slots=c(seed="ANY"))
-
-#' @export
-#' @importClassesFrom DelayedArray DelayedArray
-setClass("WrapperArray", contains=c("VIRTUAL", "DelayedArray"), slots=c(seed="WrapperArraySeed"))
-
-#' @export
 #' @importClassesFrom DelayedArray DelayedAbind
 setClass("AmalgamatedArraySeed", contains="DelayedAbind", slots=c(samples = "character"))
 
