@@ -7,6 +7,8 @@
 
 \item Officially deprecate \code{stageObject()} and \code{loadObject()} in favor of \code{saveObject()} and \code{readObject()}.
 This includes related functions like \code{writeSparseMatrix()}, \code{.createRawArraySeed()}, etc.
+
+\item Support \pkg{scrapper}'s \code{LogNormalizedMatrixSeed} in \code{storeDelayedObject()}.
 }}
 
 \section{Version 1.8.0}{\itemize{

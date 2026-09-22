@@ -1082,6 +1082,63 @@ chihaya.registry$operation[["unary arithmetic"]] <- function(handle, version, ..
 #######################################################
 #######################################################
 
+save_scrapper_LogNormalizedMatrixSeed_for_chihaya <- function(x, ghandle, version, ...) {
+    h5_write_attribute(ghandle, "delayed_type", "operation", scalar=TRUE)
+    h5_write_vector(ghandle, "_r_type_hint", "scrapper::LogNormalizedMatrix", scalar=TRUE)
+
+    if (x@pseudo.count == 1) {
+        h5_write_attribute(ghandle, "delayed_operation", "unary arithmetic", scalar=TRUE)
+        h5_write_vector(ghandle, "method", "/", scalar=TRUE)
+        h5_write_vector(ghandle, "value", log(x@log.base), scalar=TRUE)
+        local({
+            dhandle <- H5Dopen(ghandle, "value")
+            on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
+            h5_write_attribute(dhandle, "type", "FLOAT", scalar=TRUE)
+        })
+        h5_write_vector(ghandle, "side", "right", scalar=TRUE)
+        h5_write_vector(ghandle, "_r_log_base", x@log.base, scalar=TRUE)
+
+        shandle <- H5Gcreate(ghandle, "seed")
+        on.exit(H5Gclose(shandle), add=TRUE, after=FALSE)
+        h5_write_attribute(shandle, "delayed_type", "operation", scalar=TRUE)
+        h5_write_attribute(shandle, "delayed_operation", "unary math", scalar=TRUE)
+        h5_write_vector(shandle, "method", "log1p", scalar=TRUE)
+    } else {
+        h5_write_attribute(ghandle, "delayed_operation", "unary math", scalar=TRUE)
+        h5_write_vector(ghandle, "method", "log", scalar=TRUE)
+        h5_write_vector(ghandle, "base", x@log.base, scalar=TRUE)
+
+        shandle <- H5Gcreate(ghandle, "seed")
+        on.exit(H5Gclose(shandle), add=TRUE, after=FALSE)
+        h5_write_attribute(shandle, "delayed_type", "operation", scalar=TRUE)
+        h5_write_attribute(shandle, "delayed_operation", "unary arithmetic", scalar=TRUE)
+        h5_write_vector(shandle, "method", "+", scalar=TRUE)
+        h5_write_vector(shandle, "value", x@pseudo.count, scalar=TRUE)
+        local({
+            dhandle <- H5Dopen(shandle, "value")
+            on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
+            h5_write_attribute(dhandle, "type", "FLOAT", scalar=TRUE)
+        })
+        h5_write_vector(shandle, "side", "right", scalar=TRUE)
+    }
+
+    xhandle <- H5Gcreate(shandle, "seed")
+    on.exit(H5Gclose(xhandle), add=TRUE, after=FALSE)
+    h5_write_attribute(xhandle, "delayed_type", "operation", scalar=TRUE)
+    h5_write_attribute(xhandle, "delayed_operation", "unary arithmetic", scalar=TRUE)
+    h5_write_vector(xhandle, "method", "/", scalar=TRUE)
+    h5_write_vector(xhandle, "value", x@size.factors)
+    local({
+        dhandle <- H5Dopen(xhandle, "value")
+        on.exit(H5Dclose(dhandle), add=TRUE, after=FALSE)
+        h5_write_attribute(dhandle, "type", to_value_type(type(x@size.factors)), scalar=TRUE)
+    })
+    h5_write_vector(xhandle, "along", 1L, type="H5T_NATIVE_UINT32", scalar=TRUE)
+    h5_write_vector(xhandle, "side", "right", scalar=TRUE)
+
+    altStoreDelayedObject(x@seed, xhandle, "seed", version=version, ...)
+}
+
 #' @export
 #' @import rhdf5
 #' @rdname storeDelayedObject
@@ -1135,6 +1192,9 @@ setMethod("storeDelayedObject", "ANY", function(
         h5_write_vector(rhandle, "left_orientation", "N", scalar=TRUE)
         altStoreDelayedObject(x@Qty, rhandle, "right_seed", version=version, ...)
         h5_write_vector(rhandle, "right_orientation", "N", scalar=TRUE)
+
+    } else if (is(x, "LogNormalizedMatrixSeed")) {
+        save_scrapper_LogNormalizedMatrixSeed_for_chihaya(x, ghandle, version, ...)
 
     } else {
         h5_write_attribute(ghandle, "delayed_type", "array", scalar=TRUE)
@@ -1239,6 +1299,46 @@ chihaya.registry$type.hint[["residual matrix"]] <- function(handle, version, ...
     Qty <- as.matrix(altReloadDelayedObject(rhandle, "right_seed", version=version, ...))
     seed <- new("ResidualMatrixSeed", .matrix = .matrix, Q = Q, Qty = Qty, transposed = transposed)
     DelayedArray(seed)
+}
+
+chihaya.registry$type.hint[["scrapper::LogNormalizedMatrix"]] <- function(handle, version, ...) {
+    if (!isNamespaceLoaded("scrapper")) {
+        loadNamespace("scrapper")
+    }
+
+    stopifnot(identical(h5_read_attribute(handle, "delayed_type"), "operation"))
+    optype <- h5_read_attribute(handle, "delayed_operation")
+
+    if (optype == "unary math") {
+        stopifnot(identical(h5_read_vector(handle, "method"), "log"))
+        log.base <- h5_read_vector(handle, "base")
+
+        s1handle <- H5Gopen(handle, "seed")
+        on.exit(H5Gclose(s1handle), add=TRUE, after=FALSE)
+        stopifnot(identical(h5_read_attribute(s1handle, "delayed_operation"), "unary arithmetic"))
+        stopifnot(identical(h5_read_vector(s1handle, "method"), "+"))
+        pseudo.count <- h5_read_vector(s1handle, "value")
+    } else {
+        stopifnot(identical(optype, "unary arithmetic"))
+        stopifnot(identical(h5_read_vector(handle, "method"), "/"))
+        log.base <- h5_read_vector(handle, "_r_log_base")
+
+        s1handle <- H5Gopen(handle, "seed")
+        on.exit(H5Gclose(s1handle), add=TRUE, after=FALSE)
+        stopifnot(identical(h5_read_attribute(s1handle, "delayed_operation"), "unary math"))
+        stopifnot(identical(h5_read_vector(s1handle, "method"), "log1p"))
+        pseudo.count <- 1
+    }
+
+    s2handle <- H5Gopen(s1handle, "seed")
+    on.exit(H5Gclose(s2handle), add=TRUE, after=FALSE)
+    stopifnot(identical(h5_read_attribute(s2handle, "delayed_operation"), "unary arithmetic"))
+    stopifnot(identical(h5_read_vector(s2handle, "method"), "/"))
+    stopifnot(identical(h5_read_vector(s2handle, "along"), 1L))
+    size.factors <- h5_read_vector(s2handle, "value")
+
+    seed <- altReloadDelayedObject(s2handle, "seed", version=version, ...)
+    scrapper::LogNormalizedMatrix(seed, size.factors, pseudo.count=pseudo.count, log.base=log.base)
 }
 
 #######################################################

@@ -1,4 +1,3 @@
-# This tests the behavior of the various HDF4-based seeds.
 # library(testthat); library(alabaster.matrix); source("setup.R"); source("test-storeDelayedObject.R")
 
 library(DelayedArray)
@@ -727,6 +726,51 @@ test_that("saving of a ResidualMatrix works correctly", {
 
     out <- loadDelayed(temp2)
     expect_false(is(out, "ResidualMatrix"))
+    expect_identical(unname(as.matrix(thing2)), unname(as.matrix(out)))
+})
+
+test_that("saving of a LogNormalizedMatrix works correctly", {
+    y <- abs(rsparsematrix(80, 50, 0.5))
+    thing <- scrapper::LogNormalizedMatrix(y, size.factors=runif(50), pseudo.count=1, log.base=2)
+
+    # Round-trips properly.
+    temp <- saveDelayed(thing)
+    out <- loadDelayed(temp)
+    out@seed@seed <- as(out@seed@seed, "dgCMatrix")
+    expect_identical(thing, out)
+    expect_s4_class(out, "LogNormalizedMatrix")
+
+    # Works with a different pseudo-count.
+    thing2 <- scrapper::LogNormalizedMatrix(y, size.factors=runif(50), pseudo.count=3, log.base=10)
+    temp2 <- saveDelayed(thing2)
+    out <- loadDelayed(temp2)
+    out@seed@seed <- as(out@seed@seed, "dgCMatrix")
+    expect_identical(thing2, out)
+    expect_s4_class(out, "LogNormalizedMatrix")
+
+    # Same result if we ignore the type hint.
+    (function() {
+        fhandle <- H5Fopen(file.path(temp, "array.h5"), "H5F_ACC_RDWR")
+        on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
+        ghandle <- H5Gopen(fhandle, "delayed_array")
+        on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
+        H5Ldelete(ghandle, "_r_type_hint")
+    })()
+
+    out <- loadDelayed(temp)
+    expect_false(is(out, "LogNormalizedMatrix"))
+    expect_identical(unname(as.matrix(thing)), unname(as.matrix(out)))
+
+    (function() {
+        fhandle <- H5Fopen(file.path(temp2, "array.h5"), "H5F_ACC_RDWR")
+        on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
+        ghandle <- H5Gopen(fhandle, "delayed_array")
+        on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
+        H5Ldelete(ghandle, "_r_type_hint")
+    })()
+
+    out <- loadDelayed(temp2)
+    expect_false(is(out, "LogNormalizedMatrix"))
     expect_identical(unname(as.matrix(thing2)), unname(as.matrix(out)))
 })
 

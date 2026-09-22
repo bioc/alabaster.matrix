@@ -28,7 +28,8 @@ Suggests:
     BiocStyle,
     chihaya,
     BiocSingular,
-    ResidualMatrix
+    ResidualMatrix,
+    scrapper
 LinkingTo: Rcpp
 VignetteBuilder: knitr
 Encoding: UTF-8
