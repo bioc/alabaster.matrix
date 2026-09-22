@@ -1082,6 +1082,36 @@ chihaya.registry$operation[["unary arithmetic"]] <- function(handle, version, ..
 #######################################################
 #######################################################
 
+save_ResidualMatrix_ResidualMatrixSeed_for_chihaya <- function(x, ghandle, version, ...) {
+    h5_write_attribute(ghandle, "delayed_type", "operation", scalar=TRUE)
+    h5_write_vector(ghandle, "_r_type_hint", "ResidualMatrix::ResidualMatrix", scalar=TRUE)
+
+    # Mimic a transposition operation.
+    xhandle <- ghandle
+    if (x@transposed) {
+        h5_write_attribute(ghandle, "delayed_operation", "transpose", scalar=TRUE)
+        h5_write_vector(ghandle, "permutation", c(1L, 0L), type="H5T_NATIVE_UINT32") 
+        xhandle <- H5Gcreate(ghandle, "seed")
+        on.exit(H5Gclose(xhandle), add=TRUE, after=FALSE)
+        h5_write_attribute(xhandle, "delayed_type", "operation", scalar=TRUE)
+    }
+
+    # Mimic a binary subtraction.
+    h5_write_attribute(xhandle, "delayed_operation", "binary arithmetic", scalar=TRUE)
+    h5_write_vector(xhandle, "method", "-", scalar=TRUE)
+    altStoreDelayedObject(x@.matrix, xhandle, "left", version=version, ...)
+
+    # Mimic a matrix product.
+    rhandle <- H5Gcreate(xhandle, "right")
+    on.exit(H5Gclose(rhandle), add=TRUE, after=FALSE)
+    h5_write_attribute(rhandle, "delayed_type", "operation", scalar=TRUE)
+    h5_write_attribute(rhandle, "delayed_operation", "matrix product", scalar=TRUE)
+    altStoreDelayedObject(x@Q, rhandle, "left_seed", version=version, ...)
+    h5_write_vector(rhandle, "left_orientation", "N", scalar=TRUE)
+    altStoreDelayedObject(x@Qty, rhandle, "right_seed", version=version, ...)
+    h5_write_vector(rhandle, "right_orientation", "N", scalar=TRUE)
+}
+
 save_scrapper_LogNormalizedMatrixSeed_for_chihaya <- function(x, ghandle, version, ...) {
     h5_write_attribute(ghandle, "delayed_type", "operation", scalar=TRUE)
     h5_write_vector(ghandle, "_r_type_hint", "scrapper::LogNormalizedMatrix", scalar=TRUE)
@@ -1165,33 +1195,7 @@ setMethod("storeDelayedObject", "ANY", function(
         h5_write_vector(ghandle, "right_orientation", "T", scalar=TRUE)
 
     } else if (is(x, "ResidualMatrixSeed")) {
-        h5_write_attribute(ghandle, "delayed_type", "operation", scalar=TRUE)
-        h5_write_vector(ghandle, "_r_type_hint", "residual matrix", scalar=TRUE)
-
-        # Mimic a transposition operation.
-        xhandle <- ghandle
-        if (x@transposed) {
-            h5_write_attribute(ghandle, "delayed_operation", "transpose", scalar=TRUE)
-            h5_write_vector(ghandle, "permutation", c(1L, 0L), type="H5T_NATIVE_UINT32") 
-            xhandle <- H5Gcreate(ghandle, "seed")
-            on.exit(H5Gclose(xhandle), add=TRUE, after=FALSE)
-            h5_write_attribute(xhandle, "delayed_type", "operation", scalar=TRUE)
-        }
-
-        # Mimic a binary subtraction.
-        h5_write_attribute(xhandle, "delayed_operation", "binary arithmetic", scalar=TRUE)
-        h5_write_vector(xhandle, "method", "-", scalar=TRUE)
-        altStoreDelayedObject(x@.matrix, xhandle, "left", version=version, ...)
-
-        # Mimic a matrix product.
-        rhandle <- H5Gcreate(xhandle, "right")
-        on.exit(H5Gclose(rhandle), add=TRUE, after=FALSE)
-        h5_write_attribute(rhandle, "delayed_type", "operation", scalar=TRUE)
-        h5_write_attribute(rhandle, "delayed_operation", "matrix product", scalar=TRUE)
-        altStoreDelayedObject(x@Q, rhandle, "left_seed", version=version, ...)
-        h5_write_vector(rhandle, "left_orientation", "N", scalar=TRUE)
-        altStoreDelayedObject(x@Qty, rhandle, "right_seed", version=version, ...)
-        h5_write_vector(rhandle, "right_orientation", "N", scalar=TRUE)
+        save_ResidualMatrix_ResidualMatrixSeed_for_chihaya(x, ghandle, version, ...)
 
     } else if (is(x, "LogNormalizedMatrixSeed")) {
         save_scrapper_LogNormalizedMatrixSeed_for_chihaya(x, ghandle, version, ...)
@@ -1265,7 +1269,7 @@ chihaya.registry$operation[["matrix product"]] <- function(handle, version, ...)
     BiocSingular::LowRankMatrix(L, R)
 }
 
-chihaya.registry$type.hint[["residual matrix"]] <- function(handle, version, ...) {
+chihaya.registry$type.hint[["ResidualMatrix::ResidualMatrix"]] <- function(handle, version, ...) {
     if (!isNamespaceLoaded("ResidualMatrix")) {
         loadNamespace("ResidualMatrix")
     }
@@ -1300,6 +1304,9 @@ chihaya.registry$type.hint[["residual matrix"]] <- function(handle, version, ...
     seed <- new("ResidualMatrixSeed", .matrix = .matrix, Q = Q, Qty = Qty, transposed = transposed)
     DelayedArray(seed)
 }
+
+# For back-compatibility.
+chihaya.registry$type.hint[["residual matrix"]] <- chihaya.registry$type.hint[["ResidualMatrix::ResidualMatrix"]]
 
 chihaya.registry$type.hint[["scrapper::LogNormalizedMatrix"]] <- function(handle, version, ...) {
     if (!isNamespaceLoaded("scrapper")) {

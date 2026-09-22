@@ -706,9 +706,9 @@ test_that("saving of a ResidualMatrix works correctly", {
     # Same result if we ignore the type hint.
     (function() {
         fhandle <- H5Fopen(file.path(temp, "array.h5"), "H5F_ACC_RDWR")
-        on.exit(H5Fclose(fhandle))
+        on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
         ghandle <- H5Gopen(fhandle, "delayed_array")
-        on.exit(H5Gclose(ghandle))
+        on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
         H5Ldelete(ghandle, "_r_type_hint")
     })()
 
@@ -718,15 +718,28 @@ test_that("saving of a ResidualMatrix works correctly", {
 
     (function() {
         fhandle <- H5Fopen(file.path(temp2, "array.h5"), "H5F_ACC_RDWR")
-        on.exit(H5Fclose(fhandle))
+        on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
         ghandle <- H5Gopen(fhandle, "delayed_array")
-        on.exit(H5Gclose(ghandle))
+        on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
         H5Ldelete(ghandle, "_r_type_hint")
     })()
 
     out <- loadDelayed(temp2)
     expect_false(is(out, "ResidualMatrix"))
     expect_identical(unname(as.matrix(thing2)), unname(as.matrix(out)))
+
+    # Supports the old name of the type hint.
+    (function() {
+        fhandle <- H5Fopen(file.path(temp, "array.h5"), "H5F_ACC_RDWR")
+        on.exit(H5Fclose(fhandle), add=TRUE, after=FALSE)
+        ghandle <- H5Gopen(fhandle, "delayed_array")
+        on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
+        h5_write_vector(ghandle, "_r_type_hint", "residual matrix", scalar=TRUE)
+    })()
+
+    out <- loadDelayed(temp)
+    expect_s4_class(out, "ResidualMatrix")
+    expect_identical(unname(as.matrix(thing)), unname(as.matrix(out)))
 })
 
 test_that("saving of a LogNormalizedMatrix works correctly", {
