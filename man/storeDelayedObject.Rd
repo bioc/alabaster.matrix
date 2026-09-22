@@ -130,15 +130,25 @@ Methods should save the contents of the delayed object to the HDF5 file in the \
 Each new store method typically requires a corresponding reloading function to be registered via \code{registerReloadDelayedObjectFunction},
 so that \code{reloadDelayedObject} knows how to reconstitute the object from file.
 
-Application developers can customize the process of storing/reloading delayed objects
-by specifying alternative functions in \code{altReloadDelayedObjectFunction} and \code{altStoreDelayedObjectFunction}.
+Application developers can customize the process of storing delayed objects by specifying alternative functions in \code{altStoreDelayedObjectFunction}. 
 For example, if we want to preserve all delayed objects except for \linkS4class{DelayedSubset},
 we could replace \code{storeDelayedObject} with an \code{altStoreDelayedObject} that realizes any DelayedSubset instance into an ordinary matrix.
-This is analogous to the overrides for \code{\link{altReadObject}} and \code{\link{altSaveObject}}.
+Similarly, we can customize the process of reading delayed objects by specifying an alternative function in \code{altReloadDelayedObjectFunction}.
+This is analogous to the overrides for \code{\link[alabaster.base]{altReadObject}} and \code{\link[alabaster.base]{altSaveObject}}.
 
-Extension developers (i.e., those who write new methods for \code{storeDelayedObject} or new functions for \code{reloadDelayedObject})
-should generally use \code{altStoreDelayedObject} and \code{altReloadDelayedObject} in their method/funcion bodies.
+When writing new methods for \code{storeDelayedObject} or new functions for \code{reloadDelayedObject} that save/load child delayed objects, 
+we recommend using \code{altStoreDelayedObject} and \code{altReloadDelayedObject} in the respective method/function bodies.
 This ensures that any custom overrides specified by application developers are still respected in the extensions to \pkg{alabaster.matrix}.
+
+We already implement \code{storeDelayedObject} methods and \code{reloadDelayedObject} functions for some of the more exotic DelayedArray subclasses:
+\itemize{
+\item \code{\link[BiocSingular]{LowRankMatrix}}, which is stored as a delayed matrix product.
+\item \code{\link[ResidualMatrix]{ResidualMatrix}}, which is stored as a sequence of binary arithmetic operations and matrix products.
+\item \code{\link[scrapper]{LogNormalizedMatrix}}, which is stored as a sequence of unary arithmetic operations. 
+}
+Some of these methods will create a \code{_r_type_hint} dataset containing the name of the suggested package and class with which to represent the delayed object.
+The corresponding \code{readDelayedObject} will attempt to read the object into the suggested class if the corresponding package is available.
+Otherwise, it will fall back to using the standard delayed operations, which may be less efficient in downstream usage.
 }
 
 \section{External seeds}{

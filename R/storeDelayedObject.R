@@ -34,16 +34,26 @@
 #' Methods should save the contents of the delayed object to the HDF5 file in the \pkg{chihaya} format.
 #' Each new store method typically requires a corresponding reloading function to be registered via \code{registerReloadDelayedObjectFunction},
 #' so that \code{reloadDelayedObject} knows how to reconstitute the object from file.
-#' 
-#' Application developers can customize the process of storing/reloading delayed objects
-#' by specifying alternative functions in \code{altReloadDelayedObjectFunction} and \code{altStoreDelayedObjectFunction}.
+#'
+#' Application developers can customize the process of storing delayed objects by specifying alternative functions in \code{altStoreDelayedObjectFunction}. 
 #' For example, if we want to preserve all delayed objects except for \linkS4class{DelayedSubset},
 #' we could replace \code{storeDelayedObject} with an \code{altStoreDelayedObject} that realizes any DelayedSubset instance into an ordinary matrix.
-#' This is analogous to the overrides for \code{\link{altReadObject}} and \code{\link{altSaveObject}}.
+#' Similarly, we can customize the process of reading delayed objects by specifying an alternative function in \code{altReloadDelayedObjectFunction}.
+#' This is analogous to the overrides for \code{\link[alabaster.base]{altReadObject}} and \code{\link[alabaster.base]{altSaveObject}}.
 #'
-#' Extension developers (i.e., those who write new methods for \code{storeDelayedObject} or new functions for \code{reloadDelayedObject})
-#' should generally use \code{altStoreDelayedObject} and \code{altReloadDelayedObject} in their method/funcion bodies.
+#' When writing new methods for \code{storeDelayedObject} or new functions for \code{reloadDelayedObject} that save/load child delayed objects, 
+#' we recommend using \code{altStoreDelayedObject} and \code{altReloadDelayedObject} in the respective method/function bodies.
 #' This ensures that any custom overrides specified by application developers are still respected in the extensions to \pkg{alabaster.matrix}.
+#'
+#' We already implement \code{storeDelayedObject} methods and \code{reloadDelayedObject} functions for some of the more exotic DelayedArray subclasses:
+#' \itemize{
+#' \item \code{\link[BiocSingular]{LowRankMatrix}}, which is stored as a delayed matrix product.
+#' \item \code{\link[ResidualMatrix]{ResidualMatrix}}, which is stored as a sequence of binary arithmetic operations and matrix products.
+#' \item \code{\link[scrapper]{LogNormalizedMatrix}}, which is stored as a sequence of unary arithmetic operations. 
+#' }
+#' Some of these methods will create a \code{_r_type_hint} dataset containing the name of the suggested package and class with which to represent the delayed object.
+#' The corresponding \code{readDelayedObject} will attempt to read the object into the suggested class if the corresponding package is available.
+#' Otherwise, it will fall back to using the standard delayed operations, which may be less efficient in downstream usage.
 #'
 #' @section External seeds:
 #' Whenever \code{\link{storeDelayedObject}} encounters a delayed operation or array-like seed for which it has no methods,
@@ -1082,6 +1092,16 @@ chihaya.registry$operation[["unary arithmetic"]] <- function(handle, version, ..
 #######################################################
 #######################################################
 
+save_BiocSingular_LowRankMatrixSeed_for_chihaya <- function(x, ghandle, version, ...) {
+    h5_write_attribute(ghandle, "delayed_type", "operation", scalar=TRUE)
+    h5_write_attribute(ghandle, "delayed_operation", "matrix product", scalar=TRUE)
+
+    altStoreDelayedObject(x@rotation, ghandle, "left_seed", version=version, ...)
+    h5_write_vector(ghandle, "left_orientation", "N", scalar=TRUE)
+    altStoreDelayedObject(x@components, ghandle, "right_seed", version=version, ...)
+    h5_write_vector(ghandle, "right_orientation", "T", scalar=TRUE)
+}
+
 save_ResidualMatrix_ResidualMatrixSeed_for_chihaya <- function(x, ghandle, version, ...) {
     h5_write_attribute(ghandle, "delayed_type", "operation", scalar=TRUE)
     h5_write_vector(ghandle, "_r_type_hint", "ResidualMatrix::ResidualMatrix", scalar=TRUE)
@@ -1180,19 +1200,13 @@ setMethod("storeDelayedObject", "ANY", function(
     external.save.args=list(),
     external.dedup.session=NULL,
     external.dedup.action=NULL,
-    ...) 
-{
+    ...
+) {
     ghandle <- H5Gcreate(handle, name)
     on.exit(H5Gclose(ghandle), add=TRUE, after=FALSE)
 
-    if (is(x, "LowRankMatrixSeed")) { # From BiocSingular.
-        h5_write_attribute(ghandle, "delayed_type", "operation", scalar=TRUE)
-        h5_write_attribute(ghandle, "delayed_operation", "matrix product", scalar=TRUE)
-
-        altStoreDelayedObject(x@rotation, ghandle, "left_seed", version=version, ...)
-        h5_write_vector(ghandle, "left_orientation", "N", scalar=TRUE)
-        altStoreDelayedObject(x@components, ghandle, "right_seed", version=version, ...)
-        h5_write_vector(ghandle, "right_orientation", "T", scalar=TRUE)
+    if (is(x, "LowRankMatrixSeed")) {
+        save_BiocSingular_LowRankMatrixSeed_for_chihaya(x, ghandle, version, ...)
 
     } else if (is(x, "ResidualMatrixSeed")) {
         save_ResidualMatrix_ResidualMatrixSeed_for_chihaya(x, ghandle, version, ...)

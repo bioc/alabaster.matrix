@@ -9,6 +9,7 @@
 This includes related functions like \code{writeSparseMatrix()}, \code{.createRawArraySeed()}, etc.
 
 \item Support \pkg{scrapper}'s \code{LogNormalizedMatrixSeed} in \code{storeDelayedObject()}.
+Also renamed the ResidualMatrix type hint to avoid potential confusion about the identity of the suggested class.
 }}
 
 \section{Version 1.8.0}{\itemize{
