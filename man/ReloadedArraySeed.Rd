@@ -36,10 +36,10 @@ This allows methods to refer to the existing on-disk representation by inspectin
 For example, \code{\link{saveObject}} can just copy/link to the files instead of repeating the saving process.
 }
 \details{
-The ReloadedArraySeed is a \linkS4class{DelayedUnaryIsoOp} subclass that will just forward all operations to the underlying \code{seed}.
-Its main purpose is to track the \code{path} that was originally used to generate \code{seed}, which enables optimizations for methods that need to operate on the files.
+The ReloadedArraySeed is a \linkS4class{DelayedNoOp} subclass that will just forward all operations to the underlying \code{seed}.
+Its main purpose is to track the \code{path} that was originally used to generate \code{seed}.
 
-One obvious optimization is the specialization of \code{\link{saveObject}} on ReloadedArray instances.
+By tracking its original \code{path}, we can implement an optimized \code{\link[alabaster.base]{saveObject}} method for a ReloadedArray instance.
 Instead of loading the array data back into the R session and saving it again, the \code{saveObject} method can just link or copy the existing files.
 This behavior is controlled by the \code{ReloadedArray.reuse.files=} option in the \code{saveObject} method,
 which can be any of the choices for \code{action=} in \code{\link[alabaster.base]{cloneDirectory}}.

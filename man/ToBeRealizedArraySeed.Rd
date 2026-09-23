@@ -40,8 +40,9 @@ A DelayedArray layer that indicates that its seed is to be realized by \code{\li
 This is intended for fine-grained control over which delayed operations are to be preserved in an object with multiple arrays, e.g., a SummarizedExperiment.
 }
 \details{
-The ToBeRealizedArraySeed is a \linkS4class{DelayedUnaryIsoOp} subclass that will just forward all operations to the underlying \code{seed}.
-Its purpose is to indicate to \code{\link{saveObject}} that any delayed operations in its \code{seed} should not be preserved, even if \code{DelayedArray.preserve.ops=TRUE}.
+The ToBeRealizedArraySeed is a \linkS4class{DelayedNoOp} subclass that will just forward all operations to the underlying \code{seed}.
+Its purpose is to indicate to \code{\link{saveObject}} that any delayed operations in its \code{seed} should not be preserved,
+even if \code{DelayedArray.preserve.ops=TRUE} in \code{\link{saveObject,DelayedArray-method}}.
 This is occasionally useful when saving a complicated object with many arrays like a SummarizedExperiment,
 where we want to preserve delayed operations in some arrays while realizing operations in others.
 }
