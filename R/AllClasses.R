@@ -19,3 +19,13 @@ setClass("ReloadedArray", contains="DelayedArray", slots=c(seed="ReloadedArraySe
 #' @export
 #' @importClassesFrom DelayedArray DelayedMatrix
 setClass("ReloadedMatrix", contains=c("ReloadedArray", "DelayedMatrix"))
+
+#' @export
+setClass("ToBeRealizedArraySeed", contains="DelayedUnaryIsoOp", slots=c(path="character"))
+
+#' @export
+setClass("ToBeRealizedArray", contains="DelayedArray", slots=c(seed="ToBeRealizedArraySeed"))
+
+#' @export
+#' @importClassesFrom DelayedArray DelayedMatrix
+setClass("ToBeRealizedMatrix", contains=c("ToBeRealizedArray", "DelayedMatrix"))

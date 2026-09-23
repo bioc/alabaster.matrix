@@ -10,6 +10,8 @@ This includes related functions like \code{writeSparseMatrix()}, \code{.createRa
 
 \item Support \pkg{scrapper}'s \code{LogNormalizedMatrixSeed} in \code{storeDelayedObject()}.
 Also renamed the ResidualMatrix type hint to avoid potential confusion about the identity of the suggested class.
+
+\item Added a ToBeRealizedArray class for finer control of delayed operation preservation in \code{saveObject()} with \code{Delayed.preserve.ops=TRUE}.
 }}
 
 \section{Version 1.8.0}{\itemize{

@@ -20,6 +20,12 @@
 #' which exposes the seeds to the deduplication machinery in their respective \code{saveObject} methods.
 #' Check out \code{?"\link{storeDelayedObject}"} for more details.
 #'
+#' For finer control over which delayed operations are preserved with \code{DelayedArray.preserve.ops=TRUE},
+#' we can construct \code{x} that contains \linkS4class{ToBeRealizedArray} seeds.
+#' Any ToBeRealizedArray instance will force the realization of its wrapped delayed operations into the typical dense array/sparse matrix file representations.
+#' This is useful if we only want to preserve some of the delayed operations,
+#' e.g., if we want to realize a DelayedSubset from a larger dataset while preserving the delayed arithmetic on that subset.
+#'
 #' @return
 #' \code{x} is saved to \code{path} and \code{NULL} is invisibly returned.
 #'
